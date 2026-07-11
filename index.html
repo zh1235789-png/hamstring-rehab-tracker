@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d9488">
+<title>ハムリハ - 肉離れ復帰トラッカー</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦵</text></svg>">
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --text:#1a2530; --sub:#6b7a89;
+  --accent:#0d9488; --accent-soft:#ccf1ec; --border:#e3e8ee;
+  --warn:#b45309; --warn-bg:#fef3c7; --danger:#dc2626; --danger-bg:#fee2e2;
+  --ok:#16a34a;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1519; --card:#1a2229; --text:#e8edf2; --sub:#8b9aa8;
+    --accent:#2dd4bf; --accent-soft:#134e4a; --border:#2a343d;
+    --warn:#fbbf24; --warn-bg:#3a2e10; --danger:#f87171; --danger-bg:#3d1a1a;
+    --ok:#4ade80;
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+header{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;position:sticky;top:0;z-index:10}
+header h1{font-size:17px;font-weight:700}
+.head-row{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.day-count{font-size:13px;opacity:.92}
+.phase-badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700}
+main{padding:14px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card h2 .tag{font-size:11px;color:var(--sub);font-weight:normal;margin-left:auto}
+.sub{color:var(--sub);font-size:12px;line-height:1.5}
+/* pain selector */
+.pain-row{display:flex;gap:4px;margin-top:4px}
+.pain-btn{flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:13px;font-weight:600}
+.pain-btn.sel{color:#fff;border-color:transparent}
+.pain-note{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:8px;display:none;line-height:1.5}
+.pain-note.warn{display:block;background:var(--warn-bg);color:var(--warn)}
+.pain-note.danger{display:block;background:var(--danger-bg);color:var(--danger)}
+/* day type */
+.seg{display:flex;background:var(--bg);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1;padding:8px 0;border:none;border-radius:8px;background:transparent;color:var(--sub);font-size:13px;font-weight:600}
+.seg button.sel{background:var(--card);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* checklist */
+.chk{display:flex;align-items:flex-start;gap:10px;padding:11px 4px;border-bottom:1px solid var(--border);cursor:pointer}
+.chk:last-child{border-bottom:none}
+.chk input{display:none}
+.box{width:22px;height:22px;min-width:22px;border:2px solid var(--border);border-radius:7px;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;transition:all .15s}
+.chk input:checked + .box{background:var(--accent);border-color:var(--accent)}
+.chk-body{flex:1}
+.chk-title{display:block;font-size:14px;font-weight:600;line-height:1.4}
+.chk input:checked ~ .chk-body .chk-title{color:var(--sub);text-decoration:line-through}
+.chk-detail{display:block;font-size:12px;color:var(--sub);margin-top:2px;line-height:1.45}
+.progress-bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:10px}
+.progress-bar > div{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+/* criteria */
+.advance-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;margin-top:12px}
+.advance-btn:disabled{background:var(--border);color:var(--sub)}
+.back-btn{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--sub);font-size:13px;margin-top:8px}
+.note-box{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:12px}
+.info-box{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:12px}
+/* run session */
+.run-session{background:var(--accent-soft);border-radius:10px;padding:12px;margin-bottom:10px}
+.run-session .rs-label{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.05em}
+.run-session .rs-content{font-size:15px;font-weight:700;margin-top:3px}
+.rs-btns{display:flex;gap:8px;margin-top:10px}
+.rs-btns button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:600}
+/* history */
+.hist-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);font-size:13px}
+.hist-row:last-child{border-bottom:none}
+.hist-date{width:86px;font-weight:600}
+.hist-pain{width:58px;text-align:center;border-radius:6px;padding:2px 0;font-size:12px;font-weight:700}
+.hist-detail{flex:1;color:var(--sub);font-size:12px}
+/* tabs */
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav button{flex:1;padding:10px 0 8px;border:none;background:none;color:var(--sub);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button.sel{color:var(--accent)}
+nav .ico{font-size:20px}
+.tab{display:none}
+.tab.sel{display:block}
+.congrats{text-align:center;padding:30px 10px}
+.congrats .big{font-size:48px}
+.congrats h3{margin:10px 0 6px}
+.collapse-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:14px;font-weight:700}
+.collapse-body{display:none;margin-top:10px}
+.collapse-body.open{display:block}
+</style>
+</head>
+<body>
+<header>
+  <h1>🦵 ハムリハ — 肉離れ復帰トラッカー</h1>
+  <div class="head-row">
+    <span class="day-count" id="dayCount"></span>
+    <span class="phase-badge" id="phaseBadge"></span>
+  </div>
+</header>
+
+<main>
+  <div class="tab sel" id="tab-today"></div>
+  <div class="tab" id="tab-criteria"></div>
+  <div class="tab" id="tab-history"></div>
+</main>
+
+<nav>
+  <button class="sel" data-tab="today"><span class="ico">✅</span>今日</button>
+  <button data-tab="criteria"><span class="ico">🎯</span>進行基準</button>
+  <button data-tab="history"><span class="ico">📅</span>記録</button>
+</nav>
+
+<script>
+const INJURY_DATE = '2026-07-04';
+const KEY = 'hamrehab_v1';
+
+const RUN_SESSIONS = [
+  '歩き3分＋ジョグ1分 ×5本','歩き3分＋ジョグ1分 ×5本',
+  '歩き2分＋ジョグ3分 ×5本','歩き2分＋ジョグ3分 ×5本',
+  '歩き1分＋ジョグ5分 ×4本','歩き1分＋ジョグ5分 ×4本',
+  '連続ジョグ 20分','連続ジョグ 20分',
+  '連続ジョグ 30分','連続ジョグ 30分'
+];
+
+const PHASES = {
+  1:{
+    name:'Phase 1 急性期後',
+    goal:'組織修復を邪魔せず、動きを保つ',
+    note:'❌ 静的ストレッチ禁止（修復中の組織を伸ばさない）／❌ 完全安静もNG。痛みのない動きは毎日行う。すべて痛み3/10以下で。',
+    dayTypes:['トレ日','休養日'],
+    menu:{
+      'トレ日':[
+        {id:'p1walk',t:'ウォーキング 20〜30分',d:'痛みのない範囲・速度で'},
+        {id:'p1iso',t:'等尺性ハムセット 5秒×10回×3セット',d:'うつ伏せ膝90°、かかとを壁や重りに押し付けてキープ'},
+        {id:'p1bridge',t:'グルートブリッジ（両脚）10回×3セット',d:'お尻を締めて2秒キープ'},
+      ],
+      '休養日':[
+        {id:'p1rest',t:'軽い散歩 or 完全休養',d:'翌朝の痛みを観察する日'},
+      ]
+    },
+    criteria:['痛みなく普通に歩ける','膝の曲げ伸ばしがフルレンジで無痛']
+  },
+  2:{
+    name:'Phase 2 初期リハ',
+    goal:'遠心性（エキセントリック）トレーニングの導入',
+    note:'遠心性トレは週3回・痛み3/10以下厳守。上半身の筋トレは通常どおり再開してOK（ハムに負荷がかかる種目のみ除外）。',
+    dayTypes:['遠心性トレ日','有酸素日','休養日'],
+    menu:{
+      '遠心性トレ日':[
+        {id:'p2slb',t:'片脚グルートブリッジ 8回×3セット',d:'患側メイン。左右差を確認しながら'},
+        {id:'p2ext',t:'エクステンダー 12回×3セット',d:'仰向けで股関節90°保持、膝をゆっくり伸ばす'},
+        {id:'p2rdl',t:'RDL（自重→軽負荷）10回×3セット',d:'3秒かけて下ろす。背中はまっすぐ'},
+        {id:'p2gli',t:'グライダー 4回×3セット（後半から）',d:'立位で患側を前、後脚をタオルで後方へ滑らせる'},
+        {id:'p2up',t:'上半身筋トレ（任意）',d:'ベンチ・懸垂・ショルダー系は通常どおりOK'},
+      ],
+      '有酸素日':[
+        {id:'p2car',t:'バイク／水泳／傾斜ウォーク 20〜30分',d:'走らずに心肺をつなぐ'},
+        {id:'p2up2',t:'上半身筋トレ（任意）',d:''},
+      ],
+      '休養日':[
+        {id:'p2rest',t:'軽い散歩 or 完全休養',d:''},
+      ]
+    },
+    criteria:['早歩き30分が無痛','片脚ブリッジで左右差を感じない','太もも裏を押しても痛みがほぼない','その場ジャンプ＆片脚カーフレイズが無痛']
+  },
+  3:{
+    name:'Phase 3 走行再開',
+    goal:'ウォークジョグ→連続ジョグ30分',
+    note:'ランは1日おき。走行中に張り・痛みが出たら即中止して歩く。翌朝に痛みが残ったら1段階戻して、2回成功するまで進まない。',
+    dayTypes:['ラン日','筋トレ日','休養日'],
+    menu:{
+      'ラン日':[
+        {id:'p3wu',t:'ウォームアップ早歩き 5分',d:''},
+        {id:'p3run',t:'ランセッション実施',d:'上のセッション内容。会話できるペースで'},
+        {id:'p3cd',t:'クールダウン歩き 5分',d:'終了後と翌朝の張りをチェック'},
+      ],
+      '筋トレ日':[
+        {id:'p3sq',t:'スクワット or レッグプレス',d:'普段の50%重量から。週ごとに10〜15%増'},
+        {id:'p3rdl',t:'RDL（バーベル/ダンベル）10回×3セット',d:'3秒エキセントリック。再発予防の主役'},
+        {id:'p3nor',t:'ノルディックカール 2〜3回×3セット（後半から）',d:'強烈な筋肉痛が出るので少なく始める'},
+        {id:'p3up',t:'上半身筋トレ（任意）',d:''},
+      ],
+      '休養日':[
+        {id:'p3rest',t:'軽い散歩 or 完全休養',d:''},
+      ]
+    },
+    criteria:['連続ジョグ30分が無痛（1回目）','連続ジョグ30分が無痛（2回目）','RDLが普段の80%重量で無痛']
+  },
+  4:{
+    name:'Phase 4 強度復帰',
+    goal:'スピード走→スプリント解禁→完全復帰',
+    note:'再発のほとんどは全力疾走時。80%→90%→95%と週単位で段階を踏み、各段階が無痛・不安なしになってから次へ。',
+    dayTypes:['ラン日','スピード日','筋トレ日','休養日'],
+    menu:{
+      'ラン日':[
+        {id:'p4jog',t:'ジョグ 30〜40分',d:'ペースは自由に戻してOK'},
+      ],
+      'スピード日':[
+        {id:'p4wu',t:'ジョグ10分＋動的ストレッチ',d:''},
+        {id:'p4str',t:'ストライド走 ×4本（80m）',d:'80% → 90% → 95%と週単位で漸増。週1回'},
+      ],
+      '筋トレ日':[
+        {id:'p4nor',t:'ノルディックカール 週2',d:'復帰後も最低1年継続'},
+        {id:'p4rdl',t:'RDL 週2',d:'通常重量に戻す'},
+        {id:'p4gym',t:'下半身筋トレ 通常負荷',d:''},
+      ],
+      '休養日':[
+        {id:'p4rest',t:'軽い散歩 or 完全休養',d:''},
+      ]
+    },
+    criteria:['全力の95%スプリントが恐怖感・違和感なくできる','うつ伏せ膝90°最大収縮が無痛・左右の力差なし','ノルディックカールで左右差なし','走ることへの心理的不安がない']
+  },
+  5:{
+    name:'完全復帰🎉 メンテナンス期',
+    goal:'再発予防を習慣化する',
+    note:'再受傷の7割は復帰後2ヶ月以内。ノルディックカールとRDLを週2回、最低1年間続けることが最強の再発予防。',
+    dayTypes:['トレ日','休養日'],
+    menu:{
+      'トレ日':[
+        {id:'p5nor',t:'ノルディックカール（週2）',d:''},
+        {id:'p5rdl',t:'RDL（週2）',d:''},
+        {id:'p5free',t:'ラン・筋トレは通常どおり',d:''},
+      ],
+      '休養日':[{id:'p5rest',t:'休養',d:''}]
+    },
+    criteria:[]
+  }
+};
+
+const PAIN_COLORS = ['#16a34a','#16a34a','#65a30d','#ca8a04','#ea580c','#ea580c','#dc2626','#dc2626','#dc2626','#dc2626','#dc2626'];
+
+let S = load();
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s) return s; }catch(e){}
+  return {phase:1, runSession:1, criteria:{}, days:{}};
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dayNum(dateStr){
+  return Math.round((new Date(dateStr) - new Date(INJURY_DATE))/86400000);
+}
+function getDay(ds){
+  if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase};
+  return S.days[ds];
+}
+
+function render(){
+  const ph = PHASES[S.phase];
+  document.getElementById('dayCount').textContent = `受傷から ${dayNum(todayStr())} 日目（2026/7/4 受傷）`;
+  document.getElementById('phaseBadge').textContent = ph.name;
+  renderToday(); renderCriteria(); renderHistory();
+}
+
+function renderToday(){
+  const ph = PHASES[S.phase];
+  const ds = todayStr();
+  const day = getDay(ds);
+  if(!day.type || !ph.dayTypes.includes(day.type)) day.type = ph.dayTypes[0];
+  const el = document.getElementById('tab-today');
+  let h = '';
+
+  // pain check
+  h += `<div class="card"><h2>😖 今日の痛み <span class="tag">0=無痛 / 10=最悪</span></h2><div class="pain-row">`;
+  for(let i=0;i<=10;i++){
+    const sel = day.pain===i;
+    h += `<button class="pain-btn${sel?' sel':''}" style="${sel?`background:${PAIN_COLORS[i]}`:''}" onclick="setPain(${i})">${i}</button>`;
+  }
+  h += `</div>`;
+  if(day.pain!==null && day.pain>=4) h += `<div class="pain-note danger">⚠️ 痛み4以上 — 今日は強度を落とすか休んでください。走行系は1段階戻すのがルールです。</div>`;
+  else if(day.pain!==null && day.pain>=2) h += `<div class="pain-note warn">エクササイズは痛み3/10以下で。増えるようなら中止。</div>`;
+  h += `</div>`;
+
+  // phase note
+  h += `<div class="note-box">📌 ${ph.note}</div>`;
+
+  // day type selector
+  h += `<div class="card"><h2>📋 今日のメニュー</h2><div class="seg">`;
+  ph.dayTypes.forEach(t=>{ h += `<button class="${day.type===t?'sel':''}" onclick="setType('${t}')">${t}</button>`; });
+  h += `</div>`;
+
+  // run session (phase 3 run day)
+  if(S.phase===3 && day.type==='ラン日'){
+    const done10 = S.runSession>10;
+    h += `<div class="run-session"><div class="rs-label">ランセッション ${Math.min(S.runSession,10)} / 10</div>
+      <div class="rs-content">${done10?'全セッション完了！連続ジョグ30分を維持':RUN_SESSIONS[S.runSession-1]}</div>
+      <div class="rs-btns">
+        <button onclick="runBack()">← 1段階戻す</button>
+        <button onclick="runDone()">このセッション完了 →</button>
+      </div></div>`;
+  }
+
+  // checklist
+  const items = ph.menu[day.type];
+  const doneCount = items.filter(it=>day.done[it.id]).length;
+  items.forEach(it=>{
+    h += `<label class="chk"><input type="checkbox" ${day.done[it.id]?'checked':''} onchange="toggle('${it.id}',this.checked)"><span class="box">✓</span><span class="chk-body"><span class="chk-title">${it.t}</span>${it.d?`<span class="chk-detail">${it.d}</span>`:''}</span></label>`;
+  });
+  h += `<div class="progress-bar"><div style="width:${items.length?Math.round(doneCount/items.length*100):0}%"></div></div>`;
+  h += `<div class="sub" style="margin-top:6px">${doneCount}/${items.length} 完了</div></div>`;
+
+  // phase description collapse
+  h += `<div class="card"><div class="collapse-head" onclick="this.nextElementSibling.classList.toggle('open')">💡 このフェーズのゴール <span>▾</span></div>
+    <div class="collapse-body"><p class="sub" style="font-size:13px">${ph.goal}</p></div></div>`;
+
+  el.innerHTML = h;
+}
+
+function renderCriteria(){
+  const ph = PHASES[S.phase];
+  const el = document.getElementById('tab-criteria');
+  let h = '';
+
+  if(S.phase===5){
+    h += `<div class="card"><div class="congrats"><div class="big">🎉</div><h3>完全復帰おめでとう！</h3>
+      <p class="sub">ノルディックカール＆RDL 週2回を最低1年継続。<br>それが次の肉離れを防ぐ唯一確実な方法です。</p>
+      <button class="back-btn" onclick="phaseBack()">Phase 4 に戻る</button></div></div>`;
+    el.innerHTML = h; return;
+  }
+
+  if(!S.criteria[S.phase]) S.criteria[S.phase] = ph.criteria.map(()=>false);
+  const crit = S.criteria[S.phase];
+  const allDone = crit.length>0 && crit.every(c=>c);
+
+  h += `<div class="info-box">🎯 下の項目が<b>すべて</b>クリアできたら次のフェーズへ。1つでも怪しければ進まない（再発の7割は焦りが原因）。</div>`;
+  h += `<div class="card"><h2>${ph.name} → 次への進行基準</h2>`;
+  ph.criteria.forEach((c,i)=>{
+    h += `<label class="chk"><input type="checkbox" ${crit[i]?'checked':''} onchange="toggleCrit(${i},this.checked)"><span class="box">✓</span><span class="chk-body"><span class="chk-title">${c}</span></span></label>`;
+  });
+  h += `<button class="advance-btn" ${allDone?'':'disabled'} onclick="advance()">${S.phase===4?'🎉 完全復帰する':`Phase ${S.phase+1} へ進む →`}</button>`;
+  if(S.phase>1) h += `<button class="back-btn" onclick="phaseBack()">⚠️ 痛みが再発した — 前のフェーズに戻る</button>`;
+  h += `</div>`;
+
+  h += `<div class="card"><h2>🏁 全フェーズの流れ</h2>`;
+  [1,2,3,4].forEach(p=>{
+    const cur = p===S.phase, past = p<S.phase;
+    h += `<div style="display:flex;gap:10px;padding:8px 2px;align-items:center;${cur?'':'opacity:.55'}">
+      <span style="font-size:16px">${past?'✅':cur?'▶️':'⬜'}</span>
+      <div><div style="font-size:13px;font-weight:700">${PHASES[p].name}</div><div class="sub">${PHASES[p].goal}</div></div></div>`;
+  });
+  h += `</div>`;
+
+  h += `<div class="card"><h2>🚑 受診の目安</h2><p class="sub" style="font-size:13px">・普通に歩くだけで痛みが続く<br>・座ると坐骨（お尻の付け根）が痛い<br>・フェーズを戻しても痛みが2週間改善しない<br>→ 整形外科でMRI/エコー評価を。</p></div>`;
+
+  el.innerHTML = h;
+}
+
+function renderHistory(){
+  const el = document.getElementById('tab-history');
+  const dates = Object.keys(S.days).sort().reverse().slice(0,60);
+  let h = `<div class="card"><h2>📅 記録 <span class="tag">直近${dates.length}日</span></h2>`;
+  if(dates.length===0) h += `<p class="sub">まだ記録がありません。「今日」タブでチェックすると自動保存されます。</p>`;
+  dates.forEach(ds=>{
+    const d = S.days[ds];
+    const ph = PHASES[d.phase]||PHASES[1];
+    const items = (ph.menu[d.type]||[]);
+    const done = items.filter(it=>d.done[it.id]).length;
+    const painBg = d.pain===null?'var(--border)':PAIN_COLORS[d.pain];
+    h += `<div class="hist-row">
+      <span class="hist-date">${ds.slice(5).replace('-','/')} <span class="sub">(${dayNum(ds)}日目)</span></span>
+      <span class="hist-pain" style="background:${painBg};color:#fff">${d.pain===null?'–':'痛'+d.pain}</span>
+      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}</span>
+    </div>`;
+  });
+  h += `</div>`;
+  el.innerHTML = h;
+}
+
+// actions
+function setPain(v){ const d=getDay(todayStr()); d.pain = (d.pain===v)?null:v; save(); render(); }
+function setType(t){ getDay(todayStr()).type = t; save(); render(); }
+function toggle(id,on){ const d=getDay(todayStr()); d.done[id]=on; d.phase=S.phase; save(); render(); }
+function toggleCrit(i,on){ S.criteria[S.phase][i]=on; save(); render(); }
+function runDone(){ if(S.runSession<=10){S.runSession++; save(); render();} }
+function runBack(){ if(S.runSession>1){S.runSession--; save(); render();} }
+function advance(){ S.phase = Math.min(5, S.phase+1); const d=getDay(todayStr()); d.phase=S.phase; d.type=null; save(); render(); switchTab('today'); }
+function phaseBack(){
+  if(confirm('前のフェーズに戻りますか？（進行基準のチェックはリセットされます）')){
+    S.phase = Math.max(1, S.phase-1);
+    S.criteria[S.phase] = PHASES[S.phase].criteria.map(()=>false);
+    save(); render();
+  }
+}
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('sel', t.id==='tab-'+name));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('sel', b.dataset.tab===name));
+}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+render();
+</script>
+</body>
+</html>
