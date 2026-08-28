@@ -102,12 +102,14 @@ nav .ico{font-size:20px}
 
 <main>
   <div class="tab sel" id="tab-today"></div>
+  <div class="tab" id="tab-routine"></div>
   <div class="tab" id="tab-criteria"></div>
   <div class="tab" id="tab-history"></div>
 </main>
 
 <nav>
   <button class="sel" data-tab="today"><span class="ico">✅</span>今日</button>
+  <button data-tab="routine"><span class="ico">⏰</span>ルーティーン</button>
   <button data-tab="criteria"><span class="ico">🎯</span>進行基準</button>
   <button data-tab="history"><span class="ico">📅</span>記録</button>
 </nav>
@@ -231,6 +233,28 @@ const PHASES = {
 
 const PAIN_COLORS = ['#16a34a','#16a34a','#65a30d','#ca8a04','#ea580c','#ea580c','#dc2626','#dc2626','#dc2626','#dc2626','#dc2626'];
 
+const ROUTINE = {
+  morning:[
+    {id:'m1', t:'6:00 起床・水を1杯', d:''},
+    {id:'m2', t:'シャクティマット 8分', d:'背中〜腰、深呼吸しながら（覚醒スイッチ）'},
+    {id:'m3', t:'着替え', d:''},
+    {id:'m4', t:'動的ストレッチ 7分', d:'レッグスイング／ハイニー／バットキック（張りがあれば省略）／ランジ＋ツイスト／流し1分'},
+    {id:'m5', t:'ランニング 25分', d:'リハビリフェーズの走行許可レベルを優先'},
+    {id:'m6', t:'クールダウン・静的ストレッチ 7分', d:'ふくらはぎ・臀部・股関節中心。ハムは軽めに'},
+    {id:'m7', t:'コールドシャワー 5分', d:''},
+    {id:'m8', t:'スムージー作り＋朝食 18分', d:''},
+    {id:'m9', t:'身支度', d:''},
+  ],
+  night:[
+    {id:'n1', t:'21:30 夜食（ギリシャヨーグルト＋ナッツ）', d:''},
+    {id:'n2', t:'21:45 照明を暗く・スマホ通知OFF', d:''},
+    {id:'n3', t:'歯磨き等の就寝準備', d:''},
+    {id:'n4', t:'ハムストリング周辺セルフケア 10分', d:'患部への強い刺激は避け、周辺のみ'},
+    {id:'n5', t:'読書・ジャーナリング 30分', d:'画面は見ない'},
+    {id:'n6', t:'シャクティマット 20〜25分', d:'ベッドサイドで、就寝直前まで（入眠スイッチ）'},
+  ]
+};
+
 let S = load();
 function load(){
   try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s) return s; }catch(e){}
@@ -246,7 +270,8 @@ function dayNum(dateStr){
   return Math.round((new Date(dateStr) - new Date(INJURY_DATE))/86400000);
 }
 function getDay(ds){
-  if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase};
+  if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase, routine:{}};
+  if(!S.days[ds].routine) S.days[ds].routine = {};
   return S.days[ds];
 }
 
@@ -254,7 +279,25 @@ function render(){
   const ph = PHASES[S.phase];
   document.getElementById('dayCount').textContent = `受傷から ${dayNum(todayStr())} 日目（2026/7/4 受傷）`;
   document.getElementById('phaseBadge').textContent = ph.name;
-  renderToday(); renderCriteria(); renderHistory();
+  renderToday(); renderRoutine(); renderCriteria(); renderHistory();
+}
+
+function renderRoutine(){
+  const ds = todayStr();
+  const day = getDay(ds);
+  const el = document.getElementById('tab-routine');
+  let h = '';
+  h += `<div class="info-box">⏰ 毎日の生活ルーティーン。日付が変わると自動でリセットされます。</div>`;
+  [['morning','🌅 朝（6:00〜8:00）'],['night','🌙 夜（21:30〜23:00）']].forEach(([key,label])=>{
+    const items = ROUTINE[key];
+    const doneCount = items.filter(it=>day.routine[it.id]).length;
+    h += `<div class="card"><h2>${label} <span class="tag">${doneCount}/${items.length}</span></h2>`;
+    items.forEach(it=>{
+      h += `<label class="chk"><input type="checkbox" ${day.routine[it.id]?'checked':''} onchange="toggleRoutine('${it.id}',this.checked)"><span class="box">✓</span><span class="chk-body"><span class="chk-title">${it.t}</span>${it.d?`<span class="chk-detail">${it.d}</span>`:''}</span></label>`;
+    });
+    h += `<div class="progress-bar"><div style="width:${items.length?Math.round(doneCount/items.length*100):0}%"></div></div></div>`;
+  });
+  el.innerHTML = h;
 }
 
 function renderToday(){
@@ -375,6 +418,7 @@ function renderHistory(){
 function setPain(v){ const d=getDay(todayStr()); d.pain = (d.pain===v)?null:v; save(); render(); }
 function setType(t){ getDay(todayStr()).type = t; save(); render(); }
 function toggle(id,on){ const d=getDay(todayStr()); d.done[id]=on; d.phase=S.phase; save(); render(); }
+function toggleRoutine(id,on){ const d=getDay(todayStr()); d.routine[id]=on; save(); render(); }
 function toggleCrit(i,on){ S.criteria[S.phase][i]=on; save(); render(); }
 function runDone(){ if(S.runSession<=10){S.runSession++; save(); render();} }
 function runBack(){ if(S.runSession>1){S.runSession--; save(); render();} }
