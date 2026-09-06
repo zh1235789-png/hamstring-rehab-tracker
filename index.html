@@ -64,6 +64,11 @@ main{padding:14px;max-width:560px;margin:0 auto}
 .back-btn{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--sub);font-size:13px;margin-top:8px}
 .note-box{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:12px}
 .info-box{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:12px}
+/* journal */
+.journal-label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
+.journal-label:first-of-type{margin-top:2px}
+.journal-field{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;font-family:inherit}
+.journal-field:focus{outline:none;border-color:var(--accent)}
 /* run session */
 .run-session{background:var(--accent-soft);border-radius:10px;padding:12px;margin-bottom:10px}
 .run-session .rs-label{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.05em}
@@ -250,7 +255,7 @@ const ROUTINE = {
     {id:'n2', t:'21:45 照明を暗く・スマホ通知OFF', d:''},
     {id:'n3', t:'歯磨き等の就寝準備', d:''},
     {id:'n4', t:'お風呂上がり 全身ストレッチ 8〜10分', d:'タオル肩回し30秒×2／胸椎回旋（仰向け）左右30秒／肩甲骨はがし（四つ這い）10回／腸腰筋左右30秒／梨状筋左右30秒／90/90ストレッチ左右30秒〜1分（深めに）／ハムストリング左右20〜30秒・慎重に。呼吸を止めず、患部は張りが強い日は軽めに'},
-    {id:'n5', t:'読書・ジャーナリング 30分', d:'画面は見ない'},
+    {id:'n5', t:'読書・ジャーナリング 30分', d:'画面は見ない。ジャーナリングは①感謝3つ ②今日うまくいったこと1つ ③明日のToDo3つ、の順で書く。反省・不安・悩みごとなど重い内容は書かない（反芻思考で寝つきが悪くなるため、書きたければ朝に回す）'},
     {id:'n6', t:'シャクティマット 20〜25分', d:'ベッドサイドで、就寝直前まで（入眠スイッチ）'},
   ]
 };
@@ -366,10 +371,12 @@ function dayNum(dateStr){
   return Math.round((new Date(dateStr) - new Date(INJURY_DATE))/86400000);
 }
 function getDay(ds){
-  if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase, routine:{}};
+  if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase, routine:{}, journal:{}};
   if(!S.days[ds].routine) S.days[ds].routine = {};
+  if(!S.days[ds].journal) S.days[ds].journal = {};
   return S.days[ds];
 }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function render(){
   const ph = PHASES[S.phase];
@@ -410,8 +417,22 @@ function renderRoutine(){
     });
     h += `<div class="progress-bar"><div style="width:${items.length?Math.round(doneCount/items.length*100):0}%"></div></div></div>`;
   });
+
+  const j = day.journal;
+  h += `<div class="card"><h2>📝 ジャーナリング</h2>
+    <p class="sub" style="margin-bottom:6px">感謝・良かったこと中心に。反省や不安は書かない（朝に回す）。</p>
+    <span class="journal-label">感謝したこと ①</span><input class="journal-field" type="text" value="${esc(j.g1)}" oninput="setJournal('g1',this.value)">
+    <span class="journal-label">感謝したこと ②</span><input class="journal-field" type="text" value="${esc(j.g2)}" oninput="setJournal('g2',this.value)">
+    <span class="journal-label">感謝したこと ③</span><input class="journal-field" type="text" value="${esc(j.g3)}" oninput="setJournal('g3',this.value)">
+    <span class="journal-label">今日うまくいったこと</span><input class="journal-field" type="text" value="${esc(j.good)}" oninput="setJournal('good',this.value)">
+    <span class="journal-label">明日のToDo ①</span><input class="journal-field" type="text" value="${esc(j.t1)}" oninput="setJournal('t1',this.value)">
+    <span class="journal-label">明日のToDo ②</span><input class="journal-field" type="text" value="${esc(j.t2)}" oninput="setJournal('t2',this.value)">
+    <span class="journal-label">明日のToDo ③</span><input class="journal-field" type="text" value="${esc(j.t3)}" oninput="setJournal('t3',this.value)">
+  </div>`;
+
   el.innerHTML = h;
 }
+function setJournal(key,val){ const d=getDay(todayStr()); if(!d.journal) d.journal={}; d.journal[key]=val; save(); }
 
 function renderToday(){
   const ph = PHASES[S.phase];
