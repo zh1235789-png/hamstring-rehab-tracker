@@ -527,6 +527,12 @@ function renderCriteria(){
   el.innerHTML = h;
 }
 
+const JOURNAL_LABELS = {g1:'感謝①',g2:'感謝②',g3:'感謝③',good:'良かったこと',t1:'明日のToDo①',t2:'明日のToDo②',t3:'明日のToDo③'};
+function journalEntries(j){ return Object.keys(JOURNAL_LABELS).filter(k=>j && j[k]); }
+function journalHtml(j){
+  return journalEntries(j).map(k=>`<div class="sub" style="font-size:13px;color:var(--text);margin-bottom:4px"><b style="color:var(--sub);font-weight:600">${JOURNAL_LABELS[k]}：</b>${esc(j[k])}</div>`).join('');
+}
+
 function renderHistory(){
   const el = document.getElementById('tab-history');
   const dates = Object.keys(S.days).sort().reverse().slice(0,60);
@@ -538,11 +544,13 @@ function renderHistory(){
     const items = (ph.menu[d.type]||[]);
     const done = items.filter(it=>d.done[it.id]).length;
     const painBg = d.pain===null?'var(--border)':PAIN_COLORS[d.pain];
-    h += `<div class="hist-row">
+    const hasJournal = journalEntries(d.journal).length>0;
+    h += `<div class="hist-row"${hasJournal?` style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('open')"`:''}>
       <span class="hist-date">${ds.slice(5).replace('-','/')} <span class="sub">(${dayNum(ds)}日目)</span></span>
       <span class="hist-pain" style="background:${painBg};color:#fff">${d.pain===null?'–':'痛'+d.pain}</span>
-      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}</span>
+      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}${hasJournal?' 📝':''}</span>
     </div>`;
+    if(hasJournal) h += `<div class="collapse-body" style="padding:2px 4px 12px;border-bottom:1px solid var(--border)">${journalHtml(d.journal)}</div>`;
   });
   h += `</div>`;
   el.innerHTML = h;
