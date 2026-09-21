@@ -81,11 +81,25 @@ main{padding:14px;max-width:560px;margin:0 auto}
 .hist-date{width:86px;font-weight:600}
 .hist-pain{width:58px;text-align:center;border-radius:6px;padding:2px 0;font-size:12px;font-weight:700}
 .hist-detail{flex:1;color:var(--sub);font-size:12px}
+/* business cards */
+.bc-search{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit;margin-bottom:12px}
+.bc-search:focus{outline:none;border-color:var(--accent)}
+.bc-org{font-size:12px;color:var(--sub);line-height:1.4}
+.bc-name{font-size:15px;font-weight:700;margin-top:2px}
+.bc-dept{font-size:12px;color:var(--sub);margin-top:2px}
+.bc-row{display:flex;gap:8px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border);line-height:1.5}
+.bc-row:last-child{border-bottom:none}
+.bc-label{width:58px;min-width:58px;color:var(--sub);font-size:12px;padding-top:1px}
+.bc-row a{color:var(--accent);text-decoration:none;word-break:break-all}
+.bc-item{padding:12px 0;border-bottom:1px solid var(--border)}
+.bc-item:first-of-type{padding-top:0}
+.bc-item:last-child{border-bottom:none;padding-bottom:0}
+
 /* tabs */
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:10}
-nav button{flex:1;padding:10px 0 8px;border:none;background:none;color:var(--sub);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button{flex:1;padding:10px 0 8px;border:none;background:none;color:var(--sub);font-size:10px;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:2px}
 nav button.sel{color:var(--accent)}
-nav .ico{font-size:20px}
+nav .ico{font-size:19px}
 .tab{display:none}
 .tab.sel{display:block}
 .congrats{text-align:center;padding:30px 10px}
@@ -111,6 +125,7 @@ nav .ico{font-size:20px}
   <div class="tab" id="tab-stretch"></div>
   <div class="tab" id="tab-criteria"></div>
   <div class="tab" id="tab-history"></div>
+  <div class="tab" id="tab-cards"></div>
 </main>
 
 <nav>
@@ -119,6 +134,7 @@ nav .ico{font-size:20px}
   <button data-tab="stretch"><span class="ico">🧘</span>ストレッチ</button>
   <button data-tab="criteria"><span class="ico">🎯</span>進行基準</button>
   <button data-tab="history"><span class="ico">📅</span>記録</button>
+  <button data-tab="cards"><span class="ico">💼</span>名刺</button>
 </nav>
 
 <script>
@@ -406,7 +422,100 @@ function render(){
   const ph = PHASES[S.phase];
   document.getElementById('dayCount').textContent = `受傷から ${dayNum(todayStr())} 日目（2026/7/4 受傷）`;
   document.getElementById('phaseBadge').textContent = ph.name;
-  renderToday(); renderRoutine(); renderStretch(); renderCriteria(); renderHistory();
+  renderToday(); renderRoutine(); renderStretch(); renderCriteria(); renderHistory(); renderCards();
+}
+
+const CARD_GROUPS = [
+  { key:'agent', label:'🤝 医師人材紹介・エージェント' },
+  { key:'hospital', label:'🏥 病院・医療法人' },
+  { key:'pharma', label:'💊 製薬企業' },
+  { key:'other', label:'🏷 その他' },
+];
+
+const CARDS = [
+  { id:'bc_moriyama', group:'agent',
+    name:'森山 利香', title:'医師のエージェント',
+    org:'日本メディカルコネクション株式会社', dept:'医師の人材紹介',
+    tels:[{l:'Mobile',n:'090-3907-6156'},{l:'TEL',n:'03-6272-6155'},{l:'FAX',n:'03-6272-6156'}],
+    email:'rika.moriyama@m-connection.co.jp',
+    url:'https://www.m-connection.co.jp',
+    addr:'〒102-0082 東京都千代田区一番町13番地2 一番町KSKビル5F' },
+  { id:'bc_namie', group:'hospital',
+    name:'浪江 美起', title:'',
+    org:'一般社団法人 上尾中央医科グループ協議会（AMG）', dept:'医師人事企画部',
+    tels:[{l:'携帯',n:'090-9837-3822'},{l:'電話',n:'048-772-6894'},{l:'FAX',n:'048-776-7062'}],
+    email:'miki.namie@amg.or.jp',
+    url:'https://amg.or.jp',
+    addr:'〒362-0075 埼玉県上尾市柏座1-10-3-58 AMG協議会ビル2F' },
+  { id:'bc_takayanagi', group:'hospital',
+    name:'髙栁 玲', title:'総務課 課長補佐／医師人事担当',
+    org:'医療法人 沖縄徳洲会 中部徳洲会病院', dept:'総務課',
+    tels:[{l:'携帯',n:'090-7160-7057'},{l:'直通',n:'098-931-0550'},{l:'FAX',n:'098-931-9595'}],
+    email:'a.takayanagi@cyutoku.or.jp',
+    url:'',
+    addr:'〒901-2393 沖縄県中頭郡北中城村字比嘉801番地' },
+  { id:'bc_kobayashi', group:'pharma',
+    name:'小林 由起', title:'',
+    org:'エーザイ株式会社（エーザイ・ジャパン）', dept:'オンコロジー事業本部 首都圏オンコロジー統括部',
+    tels:[{l:'携帯',n:'070-3863-8701'},{l:'フリー',n:'0120-232-075'}],
+    email:'y16-kobayashi@hhc.eisai.co.jp',
+    url:'',
+    addr:'〒112-8088 東京都文京区小石川4-20-22 飯野竹早ビル' },
+  { id:'bc_watanabe', group:'other',
+    name:'渡邉 和紀', title:'東京ミッドタウン店',
+    org:'ハリー・ウィンストン・ジャパン株式会社', dept:'',
+    tels:[{l:'TEL',n:'03-5413-3400'},{l:'FAX',n:'03-5413-3401'}],
+    email:'kazunori.watanabe@harrywinston.com',
+    url:'',
+    addr:'〒107-0052 東京都港区赤坂9丁目7番3号 東京ミッドタウンガレリア1階' },
+];
+
+let cardQuery = '';
+
+function renderCards(){
+  const el = document.getElementById('tab-cards');
+  const q = cardQuery.trim().toLowerCase();
+  const match = c => !q || [c.name,c.title,c.org,c.dept,c.addr,c.email,...c.tels.map(t=>t.n)]
+    .join(' ').toLowerCase().includes(q);
+  const hits = CARDS.filter(match);
+
+  let h = `<div class="info-box">💼 いただいた名刺の連絡先。電話番号・メールはタップでそのまま発信／作成できます。</div>`;
+  h += `<input class="bc-search" type="search" placeholder="名前・会社名・病院名で検索" value="${esc(cardQuery)}" oninput="setCardQuery(this.value)">`;
+
+  if(!hits.length){
+    h += `<div class="card"><p class="sub">「${esc(cardQuery)}」に一致する名刺はありません。</p></div>`;
+    el.innerHTML = h;
+    return;
+  }
+
+  CARD_GROUPS.forEach(g=>{
+    const items = hits.filter(c=>c.group===g.key);
+    if(!items.length) return;
+    h += `<div class="card"><h2>${g.label} <span class="tag">${items.length}件</span></h2>`;
+    items.forEach(c=>{
+      h += `<div class="bc-item">
+        <div class="bc-org">${c.org}</div>
+        ${c.dept?`<div class="bc-dept">${c.dept}</div>`:''}
+        <div class="bc-name">${c.name}</div>
+        ${c.title?`<div class="bc-dept">${c.title}</div>`:''}
+        <div style="margin-top:8px">`;
+      c.tels.forEach(t=>{
+        h += `<div class="bc-row"><span class="bc-label">${t.l}</span><a href="tel:${t.n.replace(/-/g,'')}">${t.n}</a></div>`;
+      });
+      if(c.email) h += `<div class="bc-row"><span class="bc-label">Mail</span><a href="mailto:${c.email}">${c.email}</a></div>`;
+      if(c.url) h += `<div class="bc-row"><span class="bc-label">Web</span><a href="${c.url}" target="_blank" rel="noopener">${c.url.replace(/^https?:\/\//,'')}</a></div>`;
+      h += `<div class="bc-row"><span class="bc-label">住所</span><span class="sub" style="font-size:13px;color:var(--text)">${c.addr}</span></div>`;
+      h += `</div></div>`;
+    });
+    h += `</div>`;
+  });
+  el.innerHTML = h;
+}
+function setCardQuery(v){
+  cardQuery = v;
+  renderCards();
+  const inp = document.querySelector('#tab-cards .bc-search');
+  if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
 }
 
 function renderStretch(){
