@@ -70,6 +70,12 @@ main{padding:14px;max-width:560px;margin:0 auto}
 .journal-label:first-of-type{margin-top:2px}
 .journal-field{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;font-family:inherit}
 .journal-field:focus{outline:none;border-color:var(--accent)}
+textarea.journal-field{resize:vertical;font-size:12px;line-height:1.4;margin-bottom:8px}
+.backup-msg{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:8px;line-height:1.5;display:none}
+.backup-msg.show{display:block}
+.backup-msg.ok{background:var(--accent-soft);color:var(--accent)}
+.backup-msg.ng{background:var(--danger-bg);color:var(--danger)}
+hr.backup-sep{border:none;border-top:1px solid var(--border);margin:14px 0}
 /* run session */
 .run-session{background:var(--accent-soft);border-radius:10px;padding:12px;margin-bottom:10px}
 .run-session .rs-label{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.05em}
@@ -139,7 +145,7 @@ nav .ico{font-size:20px}
 <script>
 // コミット時に pre-commit フックが自動で書き換える。手で編集しない。
 // 端末に更新が届いたかは、ヘッダーのこの表示で確認する。
-const BUILD = '2026-09-22.ad29';
+const BUILD = '2026-09-22.73b4';
 const INJURY_DATE = '2026-07-04';
 const KEY = 'hamrehab_v1';
 
@@ -432,6 +438,28 @@ function getDay(ds){
   if(!S.days[ds].bike || !Array.isArray(S.days[ds].bike.w)) S.days[ds].bike = {w:[null,null,null,null], rpe:null};
   return S.days[ds];
 }
+// 取り込みは全記録を置き換えるので、壊れた入力をそのまま S に入れない。
+// 日付キーの形式が違う日は捨てる（renderHistory が dayNum() で落ちるため）。
+function parseImport(text){
+  let o;
+  try{ o = JSON.parse(text); }catch(e){ return {ok:false, error:'JSONとして読み取れません。貼り付けが途中で切れていないか確認してください。'}; }
+  if(!o || typeof o!=='object' || Array.isArray(o)) return {ok:false, error:'このアプリの書き出しデータではありません。'};
+  if(!o.days || typeof o.days!=='object' || Array.isArray(o.days)) return {ok:false, error:'記録(days)が見つかりません。'};
+  const days = {};
+  Object.keys(o.days).forEach(k=>{
+    if(/^\d{4}-\d{2}-\d{2}$/.test(k) && o.days[k] && typeof o.days[k]==='object' && !Array.isArray(o.days[k])) days[k] = o.days[k];
+  });
+  if(!Object.keys(days).length) return {ok:false, error:'有効な日付の記録が1日もありません。'};
+  const phase = Math.floor(Number(o.phase));
+  const rs = Math.floor(Number(o.runSession));
+  return {ok:true, count:Object.keys(days).length, state:{
+    phase: (phase>=1 && phase<=5) ? phase : 1,
+    runSession: (rs>=1 && rs<=11) ? rs : 1,
+    criteria: (o.criteria && typeof o.criteria==='object' && !Array.isArray(o.criteria)) ? o.criteria : {},
+    days
+  }};
+}
+
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ---- バイク4×4（VO2maxトラック）----
@@ -695,7 +723,53 @@ function renderHistory(){
     if(hasJournal) h += `<div class="collapse-body" style="padding:2px 4px 12px;border-bottom:1px solid var(--border)">${journalHtml(d.journal)}</div>`;
   });
   h += `</div>`;
+
+  h += `<div class="card">
+    <div class="collapse-head" onclick="this.nextElementSibling.classList.toggle('open')">💾 記録の書き出し / 取り込み <span>▾</span></div>
+    <div class="collapse-body">
+      <p class="sub">機種変更・ホーム画面アプリの入れ直しの前に、必ず書き出してコピーしておいてください。記録は端末の中にしかありません。</p>
+      <button class="back-btn" onclick="copyExport()">📤 書き出してコピー</button>
+      <textarea class="journal-field" id="exportArea" rows="3" readonly placeholder="上のボタンを押すとここに出ます"></textarea>
+      <div class="backup-msg" id="exportMsg"></div>
+      <hr class="backup-sep">
+      <span class="journal-label" style="margin-top:0">取り込み（書き出したJSONを貼り付け）</span>
+      <textarea class="journal-field" id="importArea" rows="3" placeholder='{"phase":3,"runSession":7,...}'></textarea>
+      <button class="back-btn" onclick="doImport()">📥 取り込む（今の記録は置き換わります）</button>
+      <div class="backup-msg" id="importMsg"></div>
+    </div>
+  </div>`;
+
   el.innerHTML = renderBikeTrend() + h;
+}
+
+function backupMsg(id, text, ok){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'backup-msg show ' + (ok ? 'ok' : 'ng');
+}
+function copyExport(){
+  const json = JSON.stringify(S);
+  const ta = document.getElementById('exportArea');
+  if(ta){ ta.value = json; ta.select(); }
+  const days = Object.keys(S.days).length;
+  // iOSのホーム画面アプリでは clipboard API が使えないことがあるので、
+  // 失敗しても textarea に出ている＝手で選んでコピーできる状態にしておく。
+  const done = ()=> backupMsg('exportMsg', `${days}日分をコピーしました。安全な場所に貼り付けて保存してください。`, true);
+  const fail = ()=> backupMsg('exportMsg', `${days}日分を書き出しました。上の枠を長押しして手でコピーしてください。`, true);
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(done, fail);
+    else fail();
+  }catch(e){ fail(); }
+}
+function doImport(){
+  const ta = document.getElementById('importArea');
+  const r = parseImport(ta ? ta.value : '');
+  if(!r.ok){ backupMsg('importMsg', '❌ ' + r.error, false); return; }
+  if(!confirm(`${r.count}日分の記録を取り込みます。\n今の記録は置き換わります。よろしいですか？`)) return;
+  S = r.state;
+  save(); render();
+  backupMsg('importMsg', `✅ ${r.count}日分を取り込みました。`, true);
 }
 
 // actions
@@ -739,6 +813,11 @@ function switchTab(name){
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
 render();
+
+// 更新を確実に届けるためだけに登録する（詳細は sw.js のコメント）。
+if(typeof navigator !== 'undefined' && 'serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>
