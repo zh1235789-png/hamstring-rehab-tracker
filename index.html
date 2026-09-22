@@ -43,8 +43,8 @@ main{padding:14px;max-width:560px;margin:0 auto}
 .pain-note.warn{display:block;background:var(--warn-bg);color:var(--warn)}
 .pain-note.danger{display:block;background:var(--danger-bg);color:var(--danger)}
 /* day type */
-.seg{display:flex;background:var(--bg);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
-.seg button{flex:1;padding:8px 0;border:none;border-radius:8px;background:transparent;color:var(--sub);font-size:13px;font-weight:600}
+.seg{display:flex;flex-wrap:wrap;background:var(--bg);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1 1 auto;min-width:22%;white-space:nowrap;padding:8px 6px;border:none;border-radius:8px;background:transparent;color:var(--sub);font-size:13px;font-weight:600}
 .seg button.sel{background:var(--card);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 /* checklist */
 .chk{display:flex;align-items:flex-start;gap:10px;padding:11px 4px;border-bottom:1px solid var(--border);cursor:pointer}
@@ -75,6 +75,19 @@ main{padding:14px;max-width:560px;margin:0 auto}
 .run-session .rs-content{font-size:15px;font-weight:700;margin-top:3px}
 .rs-btns{display:flex;gap:8px;margin-top:10px}
 .rs-btns button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:600}
+/* bike 4x4 */
+.bike-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.bike-cell{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--accent);font-weight:700}
+.bike-cell input{padding:8px 4px;text-align:center;font-size:15px;font-weight:700}
+.bike-avg{margin-top:10px;font-size:13px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.bike-avg b{font-size:19px}
+.bike-fade{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.5}
+.bike-fade.warn{background:var(--warn-bg);color:var(--warn)}
+.bike-fade.ok{background:var(--card);color:var(--ok)}
+.bike-row{display:flex;align-items:center;gap:8px;padding:6px 2px;font-size:12px}
+.bike-bar{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bike-bar > span{display:block;height:100%;background:var(--accent);border-radius:4px}
+.bike-w{width:56px;text-align:right;font-weight:700;font-size:13px}
 /* history */
 .hist-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);font-size:13px}
 .hist-row:last-child{border-bottom:none}
@@ -133,6 +146,15 @@ const RUN_SESSIONS = [
   '連続ジョグ 30分','連続ジョグ 30分'
 ];
 
+// VO2maxトラック: ハムの伸張負荷ゼロで中枢（一回拍出量）だけを叩く枠。
+// ランのハシゴとは独立に進めるので、フェーズが戻ってもここは止めない。
+const BIKE_MENU = [
+  {id:'b_wu',t:'ウォームアップ 10分',d:'徐々に上げ、最後の2分で心拍を準備しておく'},
+  {id:'b_main',t:'4分×4本（間に3分の軽回し）',d:'「4本目も1本目と同じワットで回し切れる上限」が正しい強度。サドルは普段よりやや低めにして股関節の屈曲を浅くする'},
+  {id:'b_cd',t:'クールダウン 5分',d:''},
+  {id:'b_check',t:'ハムの状態を確認',d:'バイクで太もも裏に張りが出るのは想定外。出たら次回は負荷を下げる'},
+];
+
 const PHASES = {
   1:{
     name:'Phase 1 急性期後',
@@ -155,7 +177,7 @@ const PHASES = {
     name:'Phase 2 初期リハ',
     goal:'遠心性（エキセントリック）トレーニングの導入',
     note:'遠心性トレは週3回・痛み3/10以下厳守。上半身の筋トレは通常どおり再開してOK（ハムに負荷がかかる種目のみ除外）。',
-    dayTypes:['遠心性トレ日','有酸素日','休養日'],
+    dayTypes:['遠心性トレ日','有酸素日','バイク日','休養日'],
     menu:{
       '遠心性トレ日':[
         {id:'p2slb',t:'片脚グルートブリッジ 8回×3セット',d:'患側メイン。左右差を確認しながら'},
@@ -168,6 +190,7 @@ const PHASES = {
         {id:'p2car',t:'バイク／水泳／傾斜ウォーク 20〜30分',d:'走らずに心肺をつなぐ'},
         {id:'p2up2',t:'上半身筋トレ（任意）',d:''},
       ],
+      'バイク日':BIKE_MENU,
       '休養日':[
         {id:'p2rest',t:'軽い散歩 or 完全休養',d:''},
       ]
@@ -178,7 +201,7 @@ const PHASES = {
     name:'Phase 3 走行再開',
     goal:'ウォークジョグ→連続ジョグ30分',
     note:'ランは1日おき。走行中に張り・痛みが出たら即中止して歩く。翌朝に痛みが残ったら1段階戻して、2回成功するまで進まない。',
-    dayTypes:['ラン日','筋トレ日','休養日'],
+    dayTypes:['ラン日','バイク日','筋トレ日','休養日'],
     menu:{
       'ラン日':[
         {id:'p3wu',t:'ウォームアップ早歩き 5分',d:''},
@@ -191,6 +214,7 @@ const PHASES = {
         {id:'p3nor',t:'ノルディックカール 2〜3回×3セット（後半から）',d:'強烈な筋肉痛が出るので少なく始める'},
         {id:'p3up',t:'上半身筋トレ（任意）',d:''},
       ],
+      'バイク日':BIKE_MENU,
       '休養日':[
         {id:'p3rest',t:'軽い散歩 or 完全休養',d:''},
       ]
@@ -201,7 +225,7 @@ const PHASES = {
     name:'Phase 4 強度復帰',
     goal:'スピード走→スプリント解禁→完全復帰',
     note:'再発のほとんどは全力疾走時。80%→90%→95%と週単位で段階を踏み、各段階が無痛・不安なしになってから次へ。',
-    dayTypes:['ラン日','スピード日','筋トレ日','休養日'],
+    dayTypes:['ラン日','スピード日','バイク日','筋トレ日','休養日'],
     menu:{
       'ラン日':[
         {id:'p4jog',t:'ジョグ 30〜40分',d:'ペースは自由に戻してOK'},
@@ -215,6 +239,7 @@ const PHASES = {
         {id:'p4rdl',t:'RDL 週2',d:'通常重量に戻す'},
         {id:'p4gym',t:'下半身筋トレ 通常負荷',d:''},
       ],
+      'バイク日':BIKE_MENU,
       '休養日':[
         {id:'p4rest',t:'軽い散歩 or 完全休養',d:''},
       ]
@@ -225,13 +250,14 @@ const PHASES = {
     name:'完全復帰🎉 メンテナンス期',
     goal:'再発予防を習慣化する',
     note:'再受傷の7割は復帰後2ヶ月以内。ノルディックカールとRDLを週2回、最低1年間続けることが最強の再発予防。',
-    dayTypes:['トレ日','休養日'],
+    dayTypes:['トレ日','バイク日','休養日'],
     menu:{
       'トレ日':[
         {id:'p5nor',t:'ノルディックカール（週2）',d:''},
         {id:'p5rdl',t:'RDL（週2）',d:''},
         {id:'p5free',t:'ラン・筋トレは通常どおり',d:''},
       ],
+      'バイク日':BIKE_MENU,
       '休養日':[{id:'p5rest',t:'休養',d:''}]
     },
     criteria:[]
@@ -398,9 +424,52 @@ function getDay(ds){
   if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase, routine:{}, journal:{}};
   if(!S.days[ds].routine) S.days[ds].routine = {};
   if(!S.days[ds].journal) S.days[ds].journal = {};
+  if(!S.days[ds].bike || !Array.isArray(S.days[ds].bike.w)) S.days[ds].bike = {w:[null,null,null,null], rpe:null};
   return S.days[ds];
 }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- バイク4×4（VO2maxトラック）----
+function bikeNum(v){
+  if(v===null || v==='' || v===undefined) return null;
+  const n = Number(v);
+  return (isFinite(n) && n>0) ? n : null;
+}
+function bikeAvg(b){
+  if(!b || !Array.isArray(b.w)) return null;
+  const v = b.w.map(bikeNum).filter(x=>x!==null);
+  if(!v.length) return null;
+  return Math.round(v.reduce((s,x)=>s+x,0)/v.length);
+}
+// 本数が揃っていない日を「セッション」として数えない。
+// 1本だけ入力した日と4本完遂した日の平均を並べても比較にならないため。
+function bikeSessions(){
+  return Object.keys(S.days).sort()
+    .map(ds=>({ds, avg:bikeAvg(S.days[ds].bike)}))
+    .filter(x=>x.avg!==null);
+}
+function prevBikeAvg(exceptDs){
+  const past = bikeSessions().filter(x=>x.ds < exceptDs);
+  return past.length ? past[past.length-1].avg : null;
+}
+// 4本目が1本目から5%以上落ちていたら強度設定が高すぎる（1本目を飛ばしている）
+function bikeFade(b){
+  if(!b || !Array.isArray(b.w)) return null;
+  const first = bikeNum(b.w[0]), last = bikeNum(b.w[3]);
+  if(first===null || last===null) return null;
+  return last < first*0.95;
+}
+function bikeDeltaText(avg, prev){
+  if(avg===null || prev===null) return '';
+  const d = avg - prev;
+  return `前回 ${prev} → ${d>0?'+':''}${d}`;
+}
+function bikeFadeHtml(b){
+  const fade = bikeFade(b);
+  if(fade===null) return '';
+  if(fade) return `<div class="bike-fade warn">⚠️ 4本目が1本目から5%以上落ちています。強度設定が高すぎるので、次回は5〜10W下げてください。</div>`;
+  return `<div class="bike-fade ok">✅ 4本目まで維持できています。次回は5W上げて試す余地あり。</div>`;
+}
 
 function render(){
   const ph = PHASES[S.phase];
@@ -496,6 +565,25 @@ function renderToday(){
       </div></div>`;
   }
 
+  // bike 4x4 log
+  if(day.type==='バイク日'){
+    const b = day.bike;
+    const avg = bikeAvg(b), prev = prevBikeAvg(ds);
+    h += `<div class="run-session"><div class="rs-label">VO2MAX トラック — バイク 4×4</div>
+      <div class="bike-grid">`;
+    for(let i=0;i<4;i++){
+      h += `<label class="bike-cell"><span>本${i+1}</span>
+        <input class="journal-field" type="number" inputmode="numeric" min="0" step="1" value="${bikeNum(b.w[i])??''}" oninput="setBike(${i},this.value)"></label>`;
+    }
+    h += `</div>
+      <div class="bike-avg">平均 <b id="bikeAvg">${avg===null?'—':avg+' W'}</b><span class="sub" id="bikeDelta">${bikeDeltaText(avg,prev)}</span></div>
+      <div id="bikeFade">${bikeFadeHtml(b)}</div>
+      <span class="journal-label">主観強度 RPE（1〜10）</span>
+      <input class="journal-field" type="number" inputmode="numeric" min="1" max="10" step="1" value="${bikeNum(b.rpe)??''}" oninput="setBikeRpe(this.value)">
+      <p class="sub" style="margin-top:8px">ワットが出ない機種は「同じ負荷設定での平均ケイデンス」でも可。<b>途中で単位を変えないこと</b>（比較できなくなります）。</p>
+    </div>`;
+  }
+
   // checklist
   const items = ph.menu[day.type];
   const doneCount = items.filter(it=>day.done[it.id]).length;
@@ -557,6 +645,30 @@ function journalHtml(j){
   return journalEntries(j).map(k=>`<div class="sub" style="font-size:13px;color:var(--text);margin-bottom:4px"><b style="color:var(--sub);font-weight:600">${JOURNAL_LABELS[k]}：</b>${esc(j[k])}</div>`).join('');
 }
 
+function renderBikeTrend(){
+  const sess = bikeSessions();
+  if(!sess.length) return '';
+  const shown = sess.slice(-12);
+  const max = Math.max(...shown.map(s=>s.avg));
+  const first = sess[0], last = sess[sess.length-1];
+  let h = `<div class="card"><h2>🚴 バイク4×4 の推移 <span class="tag">${sess.length}セッション</span></h2>
+    <p class="sub" style="margin-bottom:8px">同じ主観強度で平均ワットが上がっていれば VO2max は伸びています。run-walk 主体の期間はガーミンの推定VO2maxが更新されないので、判定はこの数値で行ってください。</p>`;
+  shown.forEach(s=>{
+    h += `<div class="bike-row">
+      <span class="hist-date">${s.ds.slice(5).replace('-','/')}</span>
+      <span class="bike-bar"><span style="width:${max?Math.round(s.avg/max*100):0}%"></span></span>
+      <span class="bike-w">${s.avg} W</span>
+    </div>`;
+  });
+  if(sess.length>=2){
+    const d = last.avg - first.avg;
+    const pct = first.avg ? Math.round(d/first.avg*1000)/10 : 0;
+    h += `<div class="sub" style="margin-top:8px">初回 ${first.avg} W → 直近 ${last.avg} W（${d>0?'+':''}${d} W / ${pct>0?'+':''}${pct}%）</div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+
 function renderHistory(){
   const el = document.getElementById('tab-history');
   const dates = Object.keys(S.days).sort().reverse().slice(0,60);
@@ -572,12 +684,12 @@ function renderHistory(){
     h += `<div class="hist-row"${hasJournal?` style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('open')"`:''}>
       <span class="hist-date">${ds.slice(5).replace('-','/')} <span class="sub">(${dayNum(ds)}日目)</span></span>
       <span class="hist-pain" style="background:${painBg};color:#fff">${d.pain===null?'–':'痛'+d.pain}</span>
-      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}${hasJournal?' 📝':''}</span>
+      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}${bikeAvg(d.bike)!==null?` 🚴${bikeAvg(d.bike)}W`:''}${hasJournal?' 📝':''}</span>
     </div>`;
     if(hasJournal) h += `<div class="collapse-body" style="padding:2px 4px 12px;border-bottom:1px solid var(--border)">${journalHtml(d.journal)}</div>`;
   });
   h += `</div>`;
-  el.innerHTML = h;
+  el.innerHTML = renderBikeTrend() + h;
 }
 
 // actions
@@ -585,6 +697,19 @@ function setPain(v){ const d=getDay(todayStr()); d.pain = (d.pain===v)?null:v; s
 function setType(t){ getDay(todayStr()).type = t; save(); render(); }
 function toggle(id,on){ const d=getDay(todayStr()); d.done[id]=on; d.phase=S.phase; save(); render(); }
 function toggleRoutine(id,on){ const d=getDay(todayStr()); d.routine[id]=on; save(); render(); }
+// 入力中に render() を呼ぶとフォーカスが飛ぶので、表示だけ差分更新する（ジャーナルと同じ方針）
+function setBike(i,val){ const d=getDay(todayStr()); d.bike.w[i]=bikeNum(val); save(); refreshBikeView(); }
+function setBikeRpe(val){ getDay(todayStr()).bike.rpe=bikeNum(val); save(); }
+function refreshBikeView(){
+  const d = getDay(todayStr());
+  const avg = bikeAvg(d.bike);
+  const elAvg = document.getElementById('bikeAvg');
+  if(elAvg) elAvg.textContent = avg===null?'—':avg+' W';
+  const elD = document.getElementById('bikeDelta');
+  if(elD) elD.textContent = bikeDeltaText(avg, prevBikeAvg(todayStr()));
+  const elF = document.getElementById('bikeFade');
+  if(elF) elF.innerHTML = bikeFadeHtml(d.bike);
+}
 function toggleCrit(i,on){ S.criteria[S.phase][i]=on; save(); render(); }
 function runDone(){ if(S.runSession<=10){S.runSession++; save(); render();} }
 function runBack(){ if(S.runSession>1){S.runSession--; save(); render();} }
