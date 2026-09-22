@@ -33,7 +33,7 @@ function stub() {
 export const norm = (v) => JSON.parse(JSON.stringify(v));
 
 export function loadApp({ today = null, storage = {}, expectClean = false } = {}) {
-  const html = readFileSync(join(here, '..', 'index.html'), 'utf8');
+  const html = readFileSync(join(here, '..', 'app', 'index.html'), 'utf8');
   // 将来 <script> が増えても壊れないよう、非貪欲に全ブロックを連結する
   const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
   if (blocks.length === 0) throw new Error('index.html に <script> が見つかりません');
