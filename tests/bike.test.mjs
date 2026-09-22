@@ -154,3 +154,16 @@ test('getDay() は bike が無い既存の日に空の記録枠を足す', () =>
   assert.deepEqual(norm(d.bike.w), [null, null, null, null]);
   assert.equal(d.pain, 1); // 既存の記録は壊さない
 });
+
+// ---- BUILD: 更新が端末に届いたかの確認手段 ----
+
+test('BUILD は YYYY-MM-DD.xxxx 形式（pre-commit フックが書き換える）', () => {
+  // 形式が崩れると表示が壊れ、更新確認の手段が失われる
+  const build = app().$('BUILD');
+  assert.match(build, /^\d{4}-\d{2}-\d{2}\.[0-9a-f]{4}$/);
+});
+
+test('BUILD の日付は未来ではない', () => {
+  const build = app().$('BUILD');
+  assert.ok(build.slice(0, 10) <= new Date().toISOString().slice(0, 10), `BUILD が未来: ${build}`);
+});
