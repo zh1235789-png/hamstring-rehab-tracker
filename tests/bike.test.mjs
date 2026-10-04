@@ -167,3 +167,52 @@ test('BUILD の日付は未来ではない', () => {
   const build = app().$('BUILD');
   assert.ok(build.slice(0, 10) <= new Date().toISOString().slice(0, 10), `BUILD が未来: ${build}`);
 });
+
+// ---- 単位と負荷レベル（ワットが出ないエルゴ対応） ----
+
+test('bikeUnit() は既定で W、RPM を選ぶと RPM', () => {
+  const a = app();
+  assert.equal(a.bikeUnit(), 'W');
+  a.setBikeUnit('RPM');
+  assert.equal(a.bikeUnit(), 'RPM');
+  a.setBikeUnit('なんでも'); // 不正値は W に落とす
+  assert.equal(a.bikeUnit(), 'W');
+});
+
+test('bikeSessions() は負荷レベルも返す', () => {
+  const days = {
+    '2026-10-01': { done: {}, journal: {}, routine: {}, bike: { w: [90, 90, 90, 90], level: 12 } },
+    '2026-10-04': { done: {}, journal: {}, routine: {}, bike: { w: [93, 93, 93, 93], level: 12 } },
+  };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  assert.deepEqual(norm(a.bikeSessions().map(s => [s.ds, s.avg, s.level])),
+    [['2026-10-01', 90, 12], ['2026-10-04', 93, 12]]);
+});
+
+test('RPM記録でレベルが変わったら比較不能の警告を出す', () => {
+  // レベルが違うRPMを並べて改善と誤読するのが一番まずい
+  const a = app();
+  a.setBikeUnit('RPM');
+  const prev = { ds: '2026-10-01', avg: 90, level: 12 };
+  assert.match(a.bikeLevelWarnHtml(14, prev), /比較できません/);
+  assert.equal(a.bikeLevelWarnHtml(12, prev), '');   // 同じレベルなら出さない
+  assert.equal(a.bikeLevelWarnHtml(null, prev), ''); // 未入力なら出さない
+  assert.equal(a.bikeLevelWarnHtml(14, null), '');   // 前回が無ければ出さない
+});
+
+test('ワット記録ではレベルが変わっても警告を出さない', () => {
+  // ワットは絶対値なのでレベルが変わっても比較できる
+  const a = app();
+  assert.equal(a.bikeUnit(), 'W');
+  assert.equal(a.bikeLevelWarnHtml(14, { ds: '2026-10-01', avg: 180, level: 12 }), '');
+});
+
+test('getDay() は level の無い既存のバイク記録に枠を足す', () => {
+  const a = app({ hamrehab_v1: JSON.stringify({
+    phase: 3, runSession: 7, criteria: {},
+    days: { '2026-10-04': { bike: { w: [180, 180, 180, 180], rpe: 8 } } },
+  }) });
+  const d = a.getDay('2026-10-04');
+  assert.equal(d.bike.level, null);
+  assert.equal(d.bike.rpe, 8); // 既存の値は壊さない
+});

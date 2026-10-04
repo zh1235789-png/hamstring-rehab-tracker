@@ -87,6 +87,15 @@ hr.backup-sep{border:none;border-top:1px solid var(--border);margin:14px 0}
 .bike-cell{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--accent);font-weight:700}
 .bike-cell input{padding:8px 4px;text-align:center;font-size:15px;font-weight:700}
 .bike-avg{margin-top:10px;font-size:13px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.bike-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bike-unit{display:flex;background:rgba(0,0,0,.15);border-radius:8px;padding:2px;gap:2px;margin-left:auto}
+.bike-unit button{padding:4px 10px;border:none;border-radius:6px;background:transparent;color:var(--sub);font-size:11px;font-weight:700}
+.bike-unit button.sel{background:var(--card);color:var(--accent)}
+.bike-lv{display:flex;align-items:center;gap:8px;margin-top:10px}
+.bike-lv span{font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap}
+.bike-lv input{margin-bottom:0;text-align:center;font-weight:700;max-width:90px}
+.bike-lv-warn{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:8px;background:var(--warn-bg);color:var(--warn);line-height:1.5}
+.bike-lvtag{width:38px;text-align:right;font-size:11px;color:var(--sub)}
 .bike-avg b{font-size:19px}
 .bike-fade{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.5}
 .bike-fade.warn{background:var(--warn-bg);color:var(--warn)}
@@ -145,7 +154,7 @@ nav .ico{font-size:20px}
 <script>
 // コミット時に pre-commit フックが自動で書き換える。手で編集しない。
 // 端末に更新が届いたかは、ヘッダーのこの表示で確認する。
-const BUILD = '2026-09-22.a44b';
+const BUILD = '2026-10-04.d82d';
 const INJURY_DATE = '2026-07-04';
 const KEY = 'hamrehab_v1';
 
@@ -420,7 +429,7 @@ const STRETCH_GROUPS = [
 let S = load();
 function load(){
   try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s) return s; }catch(e){}
-  return {phase:1, runSession:1, criteria:{}, days:{}};
+  return {phase:1, runSession:1, criteria:{}, days:{}, bikeUnit:'W'};
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 
@@ -435,7 +444,8 @@ function getDay(ds){
   if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase, routine:{}, journal:{}};
   if(!S.days[ds].routine) S.days[ds].routine = {};
   if(!S.days[ds].journal) S.days[ds].journal = {};
-  if(!S.days[ds].bike || !Array.isArray(S.days[ds].bike.w)) S.days[ds].bike = {w:[null,null,null,null], rpe:null};
+  if(!S.days[ds].bike || !Array.isArray(S.days[ds].bike.w)) S.days[ds].bike = {w:[null,null,null,null], rpe:null, level:null};
+  if(!('level' in S.days[ds].bike)) S.days[ds].bike.level = null;
   return S.days[ds];
 }
 // 取り込みは全記録を置き換えるので、壊れた入力をそのまま S に入れない。
@@ -468,6 +478,9 @@ function bikeNum(v){
   const n = Number(v);
   return (isFinite(n) && n>0) ? n : null;
 }
+// 機種によって出る数値が違う（ワットが出ないエルゴが普通にある）。
+// 単位はアプリ全体で1つだけ持ち、途中で混ざらないようにする。
+function bikeUnit(){ return S.bikeUnit==='RPM' ? 'RPM' : 'W'; }
 function bikeAvg(b){
   if(!b || !Array.isArray(b.w)) return null;
   const v = b.w.map(bikeNum).filter(x=>x!==null);
@@ -478,7 +491,7 @@ function bikeAvg(b){
 // 1本だけ入力した日と4本完遂した日の平均を並べても比較にならないため。
 function bikeSessions(){
   return Object.keys(S.days).sort()
-    .map(ds=>({ds, avg:bikeAvg(S.days[ds].bike)}))
+    .map(ds=>({ds, avg:bikeAvg(S.days[ds].bike), level:(S.days[ds].bike && bikeNum(S.days[ds].bike.level))||null}))
     .filter(x=>x.avg!==null);
 }
 function prevBikeAvg(exceptDs){
@@ -491,6 +504,13 @@ function bikeFade(b){
   const first = bikeNum(b.w[0]), last = bikeNum(b.w[3]);
   if(first===null || last===null) return null;
   return last < first*0.95;
+}
+// レベルが変わると RPM は前回と比較できない。黙って並べると改善/悪化を誤読するので明示する。
+function bikeLevelWarnHtml(lv, prevSess){
+  if(bikeUnit()!=='RPM') return '';
+  if(lv===null || !prevSess || !prevSess.level) return '';
+  if(lv===prevSess.level) return '';
+  return `<div class="bike-lv-warn">⚠️ 前回はレベル${prevSess.level}、今回はレベル${lv}です。<b>RPMは前回と比較できません</b>。ここから新しい基準として数え直してください。</div>`;
 }
 function bikeDeltaText(avg, prev){
   if(avg===null || prev===null) return '';
@@ -603,18 +623,30 @@ function renderToday(){
   if(day.type==='バイク日'){
     const b = day.bike;
     const avg = bikeAvg(b), prev = prevBikeAvg(ds);
-    h += `<div class="run-session"><div class="rs-label">VO2MAX トラック — バイク 4×4</div>
+    const unit = bikeUnit();
+    const prevSess = bikeSessions().filter(x=>x.ds < ds).pop() || null;
+    const lv = bikeNum(b.level);
+    h += `<div class="run-session">
+      <div class="bike-head"><div class="rs-label">VO2MAX トラック — バイク 4×4</div>
+        <div class="bike-unit">
+          <button class="${unit==='W'?'sel':''}" onclick="setBikeUnit('W')">ワット</button>
+          <button class="${unit==='RPM'?'sel':''}" onclick="setBikeUnit('RPM')">RPM</button>
+        </div></div>
       <div class="bike-grid">`;
     for(let i=0;i<4;i++){
       h += `<label class="bike-cell"><span>本${i+1}</span>
         <input class="journal-field" type="number" inputmode="numeric" min="0" step="1" value="${bikeNum(b.w[i])??''}" oninput="setBike(${i},this.value)"></label>`;
     }
     h += `</div>
-      <div class="bike-avg">平均 <b id="bikeAvg">${avg===null?'—':avg+' W'}</b><span class="sub" id="bikeDelta">${bikeDeltaText(avg,prev)}</span></div>
+      <div class="bike-avg">平均 <b id="bikeAvg">${avg===null?'—':avg+' '+unit}</b><span class="sub" id="bikeDelta">${bikeDeltaText(avg,prev)}</span></div>
       <div id="bikeFade">${bikeFadeHtml(b)}</div>
+      <div class="bike-lv"><span>負荷レベル</span>
+        <input class="journal-field" type="number" inputmode="numeric" min="0" step="1" value="${lv??''}" oninput="setBikeLevel(this.value)">
+        <span class="sub" style="font-weight:normal">${prevSess&&prevSess.level?`前回 L${prevSess.level}`:''}</span></div>
+      <div id="bikeLvWarn">${bikeLevelWarnHtml(lv, prevSess)}</div>
       <span class="journal-label">主観強度 RPE（1〜10）</span>
       <input class="journal-field" type="number" inputmode="numeric" min="1" max="10" step="1" value="${bikeNum(b.rpe)??''}" oninput="setBikeRpe(this.value)">
-      <p class="sub" style="margin-top:8px">ワットが出ない機種は「同じ負荷設定での平均ケイデンス」でも可。<b>途中で単位を変えないこと</b>（比較できなくなります）。</p>
+      <p class="sub" style="margin-top:8px">${unit==='RPM'?'<b>レベルを固定したままRPMを記録</b>してください。レベルが変わるとRPMは比較できなくなります。':'ワットが出る機種はワットのまま。レベルは参考として記録します。'}</p>
     </div>`;
   }
 
@@ -686,18 +718,28 @@ function renderBikeTrend(){
   const max = Math.max(...shown.map(s=>s.avg));
   const first = sess[0], last = sess[sess.length-1];
   let h = `<div class="card"><h2>🚴 バイク4×4 の推移 <span class="tag">${sess.length}セッション</span></h2>
-    <p class="sub" style="margin-bottom:8px">同じ主観強度で平均ワットが上がっていれば VO2max は伸びています。run-walk 主体の期間はガーミンの推定VO2maxが更新されないので、判定はこの数値で行ってください。</p>`;
-  shown.forEach(s=>{
+    <p class="sub" style="margin-bottom:8px">同じ主観強度・同じ負荷レベルで数値が上がっていれば VO2max は伸びています。run-walk 主体の期間はガーミンの推定VO2maxが更新されないので、判定はこの数値で行ってください。</p>`;
+  const unit = bikeUnit();
+  shown.forEach((s,i)=>{
+    const before = i>0 ? shown[i-1] : null;
+    const changed = unit==='RPM' && s.level && before && before.level && s.level!==before.level;
     h += `<div class="bike-row">
       <span class="hist-date">${s.ds.slice(5).replace('-','/')}</span>
       <span class="bike-bar"><span style="width:${max?Math.round(s.avg/max*100):0}%"></span></span>
-      <span class="bike-w">${s.avg} W</span>
+      <span class="bike-w">${s.avg} ${unit}</span>
+      <span class="bike-lvtag">${s.level?(changed?'⚠️':'')+'L'+s.level:''}</span>
     </div>`;
   });
   if(sess.length>=2){
-    const d = last.avg - first.avg;
-    const pct = first.avg ? Math.round(d/first.avg*1000)/10 : 0;
-    h += `<div class="sub" style="margin-top:8px">初回 ${first.avg} W → 直近 ${last.avg} W（${d>0?'+':''}${d} W / ${pct>0?'+':''}${pct}%）</div>`;
+    // RPM記録でレベルが変わっていれば、初回との比較は意味を持たない
+    const comparable = unit==='W' || !first.level || !last.level || first.level===last.level;
+    if(comparable){
+      const d = last.avg - first.avg;
+      const pct = first.avg ? Math.round(d/first.avg*1000)/10 : 0;
+      h += `<div class="sub" style="margin-top:8px">初回 ${first.avg} ${unit} → 直近 ${last.avg} ${unit}（${d>0?'+':''}${d} ${unit} / ${pct>0?'+':''}${pct}%）</div>`;
+    }else{
+      h += `<div class="sub" style="margin-top:8px">初回はレベル${first.level}、直近はレベル${last.level}のため通算の比較は出していません。同じレベルの回どうしで見てください。</div>`;
+    }
   }
   h += `</div>`;
   return h;
@@ -780,6 +822,8 @@ function toggleRoutine(id,on){ const d=getDay(todayStr()); d.routine[id]=on; sav
 // 入力中に render() を呼ぶとフォーカスが飛ぶので、表示だけ差分更新する（ジャーナルと同じ方針）
 function setBike(i,val){ const d=getDay(todayStr()); d.bike.w[i]=bikeNum(val); save(); refreshBikeView(); }
 function setBikeRpe(val){ getDay(todayStr()).bike.rpe=bikeNum(val); save(); }
+function setBikeLevel(val){ getDay(todayStr()).bike.level=bikeNum(val); save(); refreshBikeView(); }
+function setBikeUnit(u){ S.bikeUnit = (u==='RPM'?'RPM':'W'); save(); render(); }
 function refreshBikeView(){
   const d = getDay(todayStr());
   const avg = bikeAvg(d.bike);
@@ -789,6 +833,10 @@ function refreshBikeView(){
   if(elD) elD.textContent = bikeDeltaText(avg, prevBikeAvg(todayStr()));
   const elF = document.getElementById('bikeFade');
   if(elF) elF.innerHTML = bikeFadeHtml(d.bike);
+  const elAv = document.getElementById('bikeAvg');
+  if(elAv && avg!==null) elAv.textContent = avg + ' ' + bikeUnit();
+  const elW = document.getElementById('bikeLvWarn');
+  if(elW) elW.innerHTML = bikeLevelWarnHtml(bikeNum(d.bike.level), bikeSessions().filter(x=>x.ds < todayStr()).pop() || null);
 }
 function toggleCrit(i,on){ S.criteria[S.phase][i]=on; save(); render(); }
 function runDone(){ if(S.runSession<=10){S.runSession++; save(); render();} }
