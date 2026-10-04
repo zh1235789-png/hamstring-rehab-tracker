@@ -216,3 +216,41 @@ test('getDay() は level の無い既存のバイク記録に枠を足す', () =
   assert.equal(d.bike.level, null);
   assert.equal(d.bike.rpe, 8); // 既存の値は壊さない
 });
+
+// ---- RPE 選択 ----
+
+test('setBikeRpe() は同じ値を再度押すと取り消す', () => {
+  const a = app();
+  a.setBikeRpe(8);
+  assert.equal(a.getDay('2026-09-22').bike.rpe, 8);
+  a.setBikeRpe(8);
+  assert.equal(a.getDay('2026-09-22').bike.rpe, null);
+  a.setBikeRpe(9);
+  assert.equal(a.getDay('2026-09-22').bike.rpe, 9);
+});
+
+test('rpeNoteHtml() は狙い(8〜9)なら「狙いどおり」', () => {
+  const a = app();
+  assert.match(a.rpeNoteHtml(8), /狙いどおり/);
+  assert.match(a.rpeNoteHtml(9), /狙いどおり/);
+});
+
+test('rpeNoteHtml() は低すぎ/高すぎで次回の調整方向を出す', () => {
+  // 数字だけ残しても後から読み返せないので、助言まで含めて出す
+  const a = app();
+  assert.match(a.rpeNoteHtml(5), /上げて/);
+  assert.match(a.rpeNoteHtml(7), /上げて/);
+  assert.match(a.rpeNoteHtml(10), /下げて/);
+});
+
+test('rpeNoteHtml() は未選択なら狙いの説明を出す', () => {
+  const a = app();
+  assert.match(a.rpeNoteHtml(null), /8〜9/);
+  assert.match(a.rpeNoteHtml(undefined), /8〜9/);
+});
+
+test('RPE は 1〜10 が重複なく定義されている', () => {
+  const rpe = app().$('RPE');
+  assert.deepEqual(norm(rpe.map(r => r.v)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  rpe.forEach((r) => assert.ok(r.label && r.c, `RPE ${r.v} に label/色が無い`));
+});

@@ -96,6 +96,10 @@ hr.backup-sep{border:none;border-top:1px solid var(--border);margin:14px 0}
 .bike-lv input{margin-bottom:0;text-align:center;font-weight:700;max-width:90px}
 .bike-lv-warn{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:8px;background:var(--warn-bg);color:var(--warn);line-height:1.5}
 .bike-lvtag{width:38px;text-align:right;font-size:11px;color:var(--sub)}
+.rpe-row{display:flex;gap:3px;margin-top:4px}
+.rpe-btn{flex:1;padding:9px 0;border:none;border-radius:7px;background:var(--card);color:var(--text);font-size:13px;font-weight:700;opacity:.7}
+.rpe-btn.sel{opacity:1;color:#fff}
+.rpe-note{margin-top:7px;font-size:12px;line-height:1.5}
 .bike-avg b{font-size:19px}
 .bike-fade{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.5}
 .bike-fade.warn{background:var(--warn-bg);color:var(--warn)}
@@ -154,7 +158,7 @@ nav .ico{font-size:20px}
 <script>
 // コミット時に pre-commit フックが自動で書き換える。手で編集しない。
 // 端末に更新が届いたかは、ヘッダーのこの表示で確認する。
-const BUILD = '2026-10-04.d82d';
+const BUILD = '2026-10-04.1aa0';
 const INJURY_DATE = '2026-07-04';
 const KEY = 'hamrehab_v1';
 
@@ -170,7 +174,7 @@ const RUN_SESSIONS = [
 // ランのハシゴとは独立に進めるので、フェーズが戻ってもここは止めない。
 const BIKE_MENU = [
   {id:'b_wu',t:'ウォームアップ 10分',d:'徐々に上げ、最後の2分で心拍を準備しておく'},
-  {id:'b_main',t:'4分×4本（間に3分の軽回し）',d:'「4本目も1本目と同じワットで回し切れる上限」が正しい強度。サドルは普段よりやや低めにして股関節の屈曲を浅くする'},
+  {id:'b_main',t:'4分×4本（間に3分の軽回し）',d:'ケイデンスは90rpm前後で固定し、強度はレベルで合わせる。「4本目も1本目と同じ強度で回し切れる上限」が正解。サドルは普段よりやや低めにして股関節の屈曲を浅くする'},
   {id:'b_cd',t:'クールダウン 5分',d:''},
   {id:'b_check',t:'ハムの状態を確認',d:'バイクで太もも裏に張りが出るのは想定外。出たら次回は負荷を下げる'},
 ];
@@ -285,6 +289,34 @@ const PHASES = {
 };
 
 const PAIN_COLORS = ['#16a34a','#16a34a','#65a30d','#ca8a04','#ea580c','#ea580c','#dc2626','#dc2626','#dc2626','#dc2626','#dc2626'];
+
+// RPE 1〜10（Borg CR10準拠）。4×4の狙いは8〜9で、7以下だと刺激が足りない。
+const RPE = [
+  {v:1, label:'非常に楽', c:'#16a34a'},
+  {v:2, label:'とても楽', c:'#16a34a'},
+  {v:3, label:'楽', c:'#65a30d'},
+  {v:4, label:'やや楽', c:'#65a30d'},
+  {v:5, label:'ややきつい', c:'#ca8a04'},
+  {v:6, label:'きつい手前', c:'#ca8a04'},
+  {v:7, label:'きつい', c:'#ea580c'},
+  {v:8, label:'とてもきつい', c:'#dc2626'},
+  {v:9, label:'ほぼ限界', c:'#dc2626'},
+  {v:10,label:'限界', c:'#991b1b'},
+];
+const RPE_TARGET = [8,9];
+function rpeInfo(v){ return RPE.find(r=>r.v===v) || null; }
+// 記録した強度が狙いから外れていれば、次回どう動かすかまで出す。
+// 数字だけ残しても後から読み返せない。
+function rpeNoteHtml(v){
+  const info = rpeInfo(v);
+  if(!info) return `<span class="sub">4×4の狙いは <b>8〜9</b>（最後の1分で会話不能）。終わって「あと1本行けた」くらいが正解。</span>`;
+  let advice = '';
+  if(v<=6) advice = ' — 刺激が足りません。次回レベルを1〜2上げてください。';
+  else if(v===7) advice = ' — あと少し。次回レベルを1上げてみてください。';
+  else if(v===10) advice = ' — 追い込みすぎです。4本目まで同じ強度で回せません。次回レベルを1下げてください。';
+  else advice = ' — 狙いどおりです。';
+  return `<span style="color:${info.c};font-weight:700">${v} ${info.label}</span><span class="sub">${advice}</span>`;
+}
 
 const ROUTINE = {
   morning:[
@@ -520,8 +552,9 @@ function bikeDeltaText(avg, prev){
 function bikeFadeHtml(b){
   const fade = bikeFade(b);
   if(fade===null) return '';
-  if(fade) return `<div class="bike-fade warn">⚠️ 4本目が1本目から5%以上落ちています。強度設定が高すぎるので、次回は5〜10W下げてください。</div>`;
-  return `<div class="bike-fade ok">✅ 4本目まで維持できています。次回は5W上げて試す余地あり。</div>`;
+  const rpm = bikeUnit()==='RPM';
+  if(fade) return `<div class="bike-fade warn">⚠️ 4本目が1本目から5%以上落ちています。強度設定が高すぎるので、次回は${rpm?'レベルを1':'5〜10W'}下げてください。</div>`;
+  return `<div class="bike-fade ok">✅ 4本目まで維持できています。次回は${rpm?'レベルを1':'5W'}上げて試す余地あり。</div>`;
 }
 
 function render(){
@@ -644,8 +677,12 @@ function renderToday(){
         <input class="journal-field" type="number" inputmode="numeric" min="0" step="1" value="${lv??''}" oninput="setBikeLevel(this.value)">
         <span class="sub" style="font-weight:normal">${prevSess&&prevSess.level?`前回 L${prevSess.level}`:''}</span></div>
       <div id="bikeLvWarn">${bikeLevelWarnHtml(lv, prevSess)}</div>
-      <span class="journal-label">主観強度 RPE（1〜10）</span>
-      <input class="journal-field" type="number" inputmode="numeric" min="1" max="10" step="1" value="${bikeNum(b.rpe)??''}" oninput="setBikeRpe(this.value)">
+      <span class="journal-label">主観強度 RPE <span class="sub">（狙い ${RPE_TARGET[0]}〜${RPE_TARGET[1]}）</span></span>
+      <div class="rpe-row">${RPE.map(r=>{
+        const sel = bikeNum(b.rpe)===r.v;
+        return `<button class="rpe-btn${sel?' sel':''}" style="${sel?`background:${r.c}`:''}" onclick="setBikeRpe(${r.v})">${r.v}</button>`;
+      }).join('')}</div>
+      <div class="rpe-note">${rpeNoteHtml(bikeNum(b.rpe))}</div>
       <p class="sub" style="margin-top:8px">${unit==='RPM'?'<b>レベルを固定したままRPMを記録</b>してください。レベルが変わるとRPMは比較できなくなります。':'ワットが出る機種はワットのまま。レベルは参考として記録します。'}</p>
     </div>`;
   }
@@ -821,7 +858,13 @@ function toggle(id,on){ const d=getDay(todayStr()); d.done[id]=on; d.phase=S.pha
 function toggleRoutine(id,on){ const d=getDay(todayStr()); d.routine[id]=on; save(); render(); }
 // 入力中に render() を呼ぶとフォーカスが飛ぶので、表示だけ差分更新する（ジャーナルと同じ方針）
 function setBike(i,val){ const d=getDay(todayStr()); d.bike.w[i]=bikeNum(val); save(); refreshBikeView(); }
-function setBikeRpe(val){ getDay(todayStr()).bike.rpe=bikeNum(val); save(); }
+// 同じ数字をもう一度押したら取り消す（痛みスコアと同じ操作感）
+function setBikeRpe(val){
+  const d = getDay(todayStr());
+  const v = bikeNum(val);
+  d.bike.rpe = (d.bike.rpe===v) ? null : v;
+  save(); render();
+}
 function setBikeLevel(val){ getDay(todayStr()).bike.level=bikeNum(val); save(); refreshBikeView(); }
 function setBikeUnit(u){ S.bikeUnit = (u==='RPM'?'RPM':'W'); save(); render(); }
 function refreshBikeView(){
