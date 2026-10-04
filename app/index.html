@@ -166,7 +166,7 @@ nav .ico{font-size:20px}
 <script>
 // コミット時に pre-commit フックが自動で書き換える。手で編集しない。
 // 端末に更新が届いたかは、ヘッダーのこの表示で確認する。
-const BUILD = '2026-10-04.4df9';
+const BUILD = '2026-10-04.da23';
 const INJURY_DATE = '2026-07-04';
 const KEY = 'hamrehab_v1';
 
@@ -491,6 +491,8 @@ function getDay(ds){
   if(!('hrMax' in S.days[ds].bike)) S.days[ds].bike.hrMax = null;
   if(!('hrAvg' in S.days[ds].bike)) S.days[ds].bike.hrAvg = null;
   if(!('z4' in S.days[ds].bike)) S.days[ds].bike.z4 = null;
+  if(!('z4m' in S.days[ds].bike)) S.days[ds].bike.z4m = null;
+  if(!('z4s' in S.days[ds].bike)) S.days[ds].bike.z4s = null;
   return S.days[ds];
 }
 // 取り込みは全記録を置き換えるので、壊れた入力をそのまま S に入れない。
@@ -551,10 +553,32 @@ function bikeHrAvgOf(b){
   if(v.length) return Math.round(v.reduce((a,x)=>a+x,0)/v.length);
   return b ? bikeHr(b.hrAvg) : null;   // 旧形式
 }
-const Z4_TARGET = [8,10];
-function bikeZ4(v){
+// ガーミンの表示が mm:ss なので、分と秒で受け取る（小数分に直させない）。
+const Z4_TARGET_SEC = [480, 600];   // 8:00〜10:00
+function bikeInt(v, lo, hi){
   const n = Number(v);
-  return (v!==null && v!=='' && v!==undefined && isFinite(n) && n>0 && n<=60) ? Math.round(n*10)/10 : null;
+  return (v!==null && v!=='' && v!==undefined && isFinite(n) && Number.isInteger(n) && n>=lo && n<=hi) ? n : null;
+}
+function fmtMS(sec){
+  if(sec===null) return '—';
+  return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
+}
+// 符号つきの差分。0:30 のような読み方にする
+function fmtDeltaMS(sec){
+  const sign = sec<0 ? '-' : '+';
+  const a = Math.abs(sec);
+  return sign + Math.floor(a/60) + ':' + String(a%60).padStart(2,'0');
+}
+function bikeZ4Secs(b){
+  if(!b) return null;
+  const m = bikeInt(b.z4m, 0, 60), sec = bikeInt(b.z4s, 0, 59);
+  if(m===null && sec===null){
+    // 旧形式: 小数の分
+    const old = Number(b.z4);
+    return (b.z4!==null && b.z4!==undefined && b.z4!=='' && isFinite(old) && old>0) ? Math.round(old*60) : null;
+  }
+  const total = (m||0)*60 + (sec||0);
+  return total>0 ? total : null;
 }
 function bikeAvg(b){
   if(!b || !Array.isArray(b.w)) return null;
@@ -570,7 +594,7 @@ function bikeSessions(){
       level:(S.days[ds].bike && bikeNum(S.days[ds].bike.level))||null,
       hrMax:bikeHrMaxOf(S.days[ds].bike),
       hrAvg:bikeHrAvgOf(S.days[ds].bike),
-      z4:(S.days[ds].bike && bikeZ4(S.days[ds].bike.z4))||null}))
+      z4:bikeZ4Secs(S.days[ds].bike)}))
     .filter(x=>x.avg!==null);
 }
 function prevBikeAvg(exceptDs){
@@ -609,17 +633,18 @@ function prevSameLevel(ds, level, key){
 // 体力がつくと同じ負荷では高ゾーンに入らなくなり、気づかないうちに
 // ただのきつめの有酸素に変質するため、ここで明示する。
 function bikeZ4NoteHtml(b, ds){
-  const z4 = bikeZ4(b.z4), lv = bikeNum(b.level);
-  if(z4===null) return `<span class="sub">任意。ガーミンのゾーン4以上の合計時間。目安は <b>${Z4_TARGET[0]}〜${Z4_TARGET[1]}分</b>（心拍の立ち上がりに1〜2分かかるため、1本あたり実質2分前後）。</span>`;
+  const z4 = bikeZ4Secs(b), lv = bikeNum(b.level);
+  const lo = Z4_TARGET_SEC[0], hi = Z4_TARGET_SEC[1];
+  if(z4===null) return `<span class="sub">任意。ガーミンのゾーン4以上の合計時間を、表示どおり分・秒で入れてください。目安は <b>${fmtMS(lo)}〜${fmtMS(hi)}</b>（心拍の立ち上がりに1〜2分かかるため、1本あたり実質2分前後）。</span>`;
   let h = '';
-  if(z4 < Z4_TARGET[0]) h += `<div><b>${z4}分</b> — 目安の${Z4_TARGET[0]}分に届いていません。強度が足りないか、1本ごとの立ち上がりが遅れています。</div>`;
-  else h += `<div><b>${z4}分</b> — 目安（${Z4_TARGET[0]}〜${Z4_TARGET[1]}分）に入っています。</div>`;
+  if(z4 < lo) h += `<div><b>${fmtMS(z4)}</b> — 目安の${fmtMS(lo)}に届いていません。強度が足りないか、1本ごとの立ち上がりが遅れています。</div>`;
+  else h += `<div><b>${fmtMS(z4)}</b> — 目安（${fmtMS(lo)}〜${fmtMS(hi)}）に入っています。</div>`;
   const prev = prevSameLevel(ds, lv, 'z4');
   if(prev){
-    const d = Math.round((z4 - prev.z4)*10)/10;
-    if(d < -0.5) h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${prev.z4}分 → ${d}分。<b>同じレベルで滞在時間が減っています＝体力がついた分、刺激が落ちています。レベルを1上げてください。</b></div>`;
-    else if(d > 0.5) h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${prev.z4}分 → +${d}分。滞在時間を保てています。</div>`;
-    else h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${prev.z4}分とほぼ同じです。</div>`;
+    const d = z4 - prev.z4;
+    if(d < -30) h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${fmtMS(prev.z4)} → ${fmtDeltaMS(d)}。<b>同じレベルで滞在時間が減っています＝体力がついた分、刺激が落ちています。レベルを1上げてください。</b></div>`;
+    else if(d > 30) h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${fmtMS(prev.z4)} → ${fmtDeltaMS(d)}。滞在時間を保てています。</div>`;
+    else h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${fmtMS(prev.z4)} とほぼ同じです。</div>`;
   }
   return h;
 }
@@ -793,9 +818,11 @@ function renderToday(){
         <label class="bike-cell"><span>本${i+1}</span>
           <input class="journal-field" type="number" inputmode="numeric" min="${HR_MIN}" max="${HR_MAX}" step="1" value="${bikeHr(b.hr[i])??''}" oninput="setBikeHrAt(${i},this.value)"></label>`).join('')}</div>
       <div class="bike-hr-note" id="bikeHrNote">${bikeHrNoteHtml(b, ds)}</div>
-      <div class="bike-lv"><span>ゾーン4以上の時間</span>
-        <input class="journal-field" type="number" inputmode="decimal" min="0" max="60" step="0.5" value="${bikeZ4(b.z4)??''}" oninput="setBikeZ4(this.value)">
-        <span class="sub" style="font-weight:normal">分</span></div>
+      <div class="bike-lv"><span>ゾーン4以上</span>
+        <input class="journal-field" type="number" inputmode="numeric" min="0" max="60" step="1" value="${bikeInt(b.z4m,0,60)??''}" oninput="setBikeZ4Part('z4m',this.value)">
+        <span class="sub" style="font-weight:normal">分</span>
+        <input class="journal-field" type="number" inputmode="numeric" min="0" max="59" step="1" value="${bikeInt(b.z4s,0,59)??''}" oninput="setBikeZ4Part('z4s',this.value)">
+        <span class="sub" style="font-weight:normal">秒</span></div>
       <div class="bike-hr-note" id="bikeZ4Note">${bikeZ4NoteHtml(b, ds)}</div>
       <span class="journal-label">主観強度 RPE <span class="sub">（狙い ${RPE_TARGET[0]}〜${RPE_TARGET[1]}）</span></span>
       <div class="rpe-row">${RPE.map(r=>{
@@ -988,7 +1015,12 @@ function setBikeRpe(val){
 }
 function setBikeLevel(val){ getDay(todayStr()).bike.level=bikeNum(val); save(); refreshBikeView(); }
 function setBikeHrAt(i, val){ getDay(todayStr()).bike.hr[i]=bikeHr(val); save(); refreshBikeView(); }
-function setBikeZ4(val){ getDay(todayStr()).bike.z4=bikeZ4(val); save(); refreshBikeView(); }
+function setBikeZ4Part(key, val){
+  const d = getDay(todayStr());
+  d.bike[key] = bikeInt(val, 0, key==='z4s' ? 59 : 60);
+  d.bike.z4 = null;   // 旧形式が残っていると分・秒の編集結果を上書きしてしまう
+  save(); refreshBikeView();
+}
 function setBikeUnit(u){ S.bikeUnit = (u==='RPM'?'RPM':'W'); save(); render(); }
 function refreshBikeView(){
   const d = getDay(todayStr());

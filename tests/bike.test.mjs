@@ -295,33 +295,67 @@ test('prevSameLevel() は同じレベルの直近回だけを返す', () => {
   assert.equal(a.prevSameLevel('2026-10-11', null), null);
 });
 
-test('bikeZ4() は分を受け取り、範囲外を弾く', () => {
+test('bikeZ4Secs() は分・秒から合計秒を出す', () => {
   const a = app();
-  assert.equal(a.bikeZ4(9), 9);
-  assert.equal(a.bikeZ4('8.5'), 8.5);
-  assert.equal(a.bikeZ4(0), null);
-  assert.equal(a.bikeZ4(90), null); // 4×4で90分はありえない
-  assert.equal(a.bikeZ4(''), null);
-  assert.equal(a.bikeZ4('abc'), null);
+  assert.equal(a.bikeZ4Secs({ z4m: 9, z4s: 30 }), 570);
+  assert.equal(a.bikeZ4Secs({ z4m: 9, z4s: null }), 540); // 秒だけ未入力
+  assert.equal(a.bikeZ4Secs({ z4m: null, z4s: 45 }), 45);
+});
+
+test('bikeZ4Secs() は範囲外・非整数・未入力を弾く', () => {
+  const a = app();
+  assert.equal(a.bikeZ4Secs({ z4m: null, z4s: null }), null);
+  assert.equal(a.bikeZ4Secs({ z4m: 0, z4s: 0 }), null);     // 0:00 は未記録扱い
+  assert.equal(a.bikeZ4Secs({ z4m: 9, z4s: 75 }), 540);     // 秒は0〜59のみ
+  assert.equal(a.bikeZ4Secs({ z4m: 90, z4s: 0 }), null);    // 4×4で90分はありえない
+  assert.equal(a.bikeZ4Secs({ z4m: '8.5', z4s: 0 }), null); // 小数分は受け付けない
+  assert.equal(a.bikeZ4Secs(undefined), null);
+});
+
+test('bikeZ4Secs() は旧形式（小数の分）も読む（移行）', () => {
+  const a = app();
+  assert.equal(a.bikeZ4Secs({ z4: 9 }), 540);
+  assert.equal(a.bikeZ4Secs({ z4: 8.5 }), 510);
+  // 分・秒が入っていればそちらを優先する
+  assert.equal(a.bikeZ4Secs({ z4: 9, z4m: 7, z4s: 0 }), 420);
+});
+
+test('fmtMS() / fmtDeltaMS() は mm:ss で出す', () => {
+  const a = app();
+  assert.equal(a.fmtMS(570), '9:30');
+  assert.equal(a.fmtMS(480), '8:00');
+  assert.equal(a.fmtMS(45), '0:45');
+  assert.equal(a.fmtMS(null), '—');
+  assert.equal(a.fmtDeltaMS(-90), '-1:30');
+  assert.equal(a.fmtDeltaMS(45), '+0:45');
 });
 
 test('同じレベルでゾーン4時間が減ったら「レベルを上げろ」と出す', () => {
   // ここが解釈の肝。滞在時間の減少は達成ではなく、刺激低下のサイン
-  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4: 9 } } };
+  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4m: 9, z4s: 0 } } };
   const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
-  const note = a.bikeZ4NoteHtml({ z4: 7, level: 12 }, '2026-10-04');
+  const note = a.bikeZ4NoteHtml({ z4m: 7, z4s: 0, level: 12 }, '2026-10-04');
   assert.match(note, /レベルを1上げて/);
+  assert.match(note, /7:00/);
 });
 
 test('同じレベルでゾーン4時間を保てていれば上げろとは言わない', () => {
-  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4: 9 } } };
+  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4m: 9, z4s: 0 } } };
   const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
-  const note = a.bikeZ4NoteHtml({ z4: 9.5, level: 12 }, '2026-10-04');
+  const note = a.bikeZ4NoteHtml({ z4m: 9, z4s: 30, level: 12 }, '2026-10-04');
   assert.doesNotMatch(note, /レベルを1上げて/);
 });
 
+test('30秒以内の増減は「ほぼ同じ」として扱う', () => {
+  // 測定のブレでレベル変更を促すと、毎回負荷が動いて比較できなくなる
+  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4m: 9, z4s: 0 } } };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  const note = a.bikeZ4NoteHtml({ z4m: 8, z4s: 40, level: 12 }, '2026-10-04');
+  assert.match(note, /ほぼ同じ/);
+});
+
 test('ゾーン4時間が未入力なら目安の説明を出す', () => {
-  assert.match(app().bikeZ4NoteHtml({ z4: null, level: 12 }, '2026-10-04'), /8〜10分/);
+  assert.match(app().bikeZ4NoteHtml({ z4m: null, z4s: null, level: 12 }, '2026-10-04'), /8:00〜10:00/);
 });
 
 // ---- 各本の終盤心拍（ラップを切らずに取る） ----
