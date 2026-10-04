@@ -254,3 +254,72 @@ test('RPE は 1〜10 が重複なく定義されている', () => {
   assert.deepEqual(norm(rpe.map(r => r.v)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   rpe.forEach((r) => assert.ok(r.label && r.c, `RPE ${r.v} に label/色が無い`));
 });
+
+// ---- 心拍・ゾーン4滞在時間 ----
+
+test('bikeHr() は生理的にありえない値を弾く', () => {
+  // 178 を 1780 と打つと基準心拍が壊れ、以降の判定が全部狂う
+  const a = app();
+  assert.equal(a.bikeHr(178), 178);
+  assert.equal(a.bikeHr('178'), 178);
+  assert.equal(a.bikeHr(1780), null);
+  assert.equal(a.bikeHr(40), null);
+  assert.equal(a.bikeHr(''), null);
+  assert.equal(a.bikeHr(null), null);
+});
+
+test('bikeHrMaxAll() は記録済みの最高心拍の最大値を返す', () => {
+  const days = {
+    '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, hrMax: 172, hrAvg: 160 } },
+    '2026-10-04': { bike: { w: [92, 92, 92, 92], level: 12, hrMax: 178, hrAvg: 158 } },
+  };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  assert.equal(a.bikeHrMaxAll(), 178);
+});
+
+test('bikeHrMaxAll() は記録が無ければ null', () => {
+  assert.equal(app().bikeHrMaxAll(), null);
+});
+
+test('prevSameLevel() は同じレベルの直近回だけを返す', () => {
+  // 負荷が違えば心拍が違って当然なので、直前の回と比べてはいけない
+  const days = {
+    '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, hrAvg: 160 } },
+    '2026-10-04': { bike: { w: [88, 88, 88, 88], level: 14, hrAvg: 168 } },
+    '2026-10-08': { bike: { w: [92, 92, 92, 92], level: 12, hrAvg: 156 } },
+  };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  assert.equal(a.prevSameLevel('2026-10-11', 12).ds, '2026-10-08');
+  assert.equal(a.prevSameLevel('2026-10-11', 14).ds, '2026-10-04');
+  assert.equal(a.prevSameLevel('2026-10-11', 20), null); // 未経験のレベル
+  assert.equal(a.prevSameLevel('2026-10-11', null), null);
+});
+
+test('bikeZ4() は分を受け取り、範囲外を弾く', () => {
+  const a = app();
+  assert.equal(a.bikeZ4(9), 9);
+  assert.equal(a.bikeZ4('8.5'), 8.5);
+  assert.equal(a.bikeZ4(0), null);
+  assert.equal(a.bikeZ4(90), null); // 4×4で90分はありえない
+  assert.equal(a.bikeZ4(''), null);
+  assert.equal(a.bikeZ4('abc'), null);
+});
+
+test('同じレベルでゾーン4時間が減ったら「レベルを上げろ」と出す', () => {
+  // ここが解釈の肝。滞在時間の減少は達成ではなく、刺激低下のサイン
+  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4: 9 } } };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  const note = a.bikeZ4NoteHtml({ z4: 7, level: 12 }, '2026-10-04');
+  assert.match(note, /レベルを1上げて/);
+});
+
+test('同じレベルでゾーン4時間を保てていれば上げろとは言わない', () => {
+  const days = { '2026-10-01': { bike: { w: [90, 90, 90, 90], level: 12, z4: 9 } } };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  const note = a.bikeZ4NoteHtml({ z4: 9.5, level: 12 }, '2026-10-04');
+  assert.doesNotMatch(note, /レベルを1上げて/);
+});
+
+test('ゾーン4時間が未入力なら目安の説明を出す', () => {
+  assert.match(app().bikeZ4NoteHtml({ z4: null, level: 12 }, '2026-10-04'), /8〜10分/);
+});
