@@ -323,3 +323,57 @@ test('同じレベルでゾーン4時間を保てていれば上げろとは言�
 test('ゾーン4時間が未入力なら目安の説明を出す', () => {
   assert.match(app().bikeZ4NoteHtml({ z4: null, level: 12 }, '2026-10-04'), /8〜10分/);
 });
+
+// ---- 各本の終盤心拍（ラップを切らずに取る） ----
+
+test('bikeHrMaxOf/bikeHrAvgOf は4本の値から最高と平均を出す', () => {
+  const a = app();
+  const b = { hr: [150, 168, 174, 176] };
+  assert.equal(a.bikeHrMaxOf(b), 176);
+  assert.equal(a.bikeHrAvgOf(b), 167); // 667/4 = 166.75 -> 167
+});
+
+test('入力済みの本だけで集計する（途中入力）', () => {
+  const a = app();
+  const b = { hr: [150, 168, null, null] };
+  assert.equal(a.bikeHrMaxOf(b), 168);
+  assert.equal(a.bikeHrAvgOf(b), 159);
+});
+
+test('範囲外の心拍は集計から除かれる', () => {
+  const a = app();
+  const b = { hr: [150, 1680, 174, 0] }; // 1680 は打ち間違い
+  assert.equal(a.bikeHrMaxOf(b), 174);
+});
+
+test('4本が空なら旧形式の hrMax / hrAvg を読む（移行）', () => {
+  // 1本も入っていない日に旧データがあれば、それを失わない
+  const a = app();
+  const b = { hr: [null, null, null, null], hrMax: 178, hrAvg: 162 };
+  assert.equal(a.bikeHrMaxOf(b), 178);
+  assert.equal(a.bikeHrAvgOf(b), 162);
+});
+
+test('4本が入っていれば旧形式より4本の値を優先する', () => {
+  const a = app();
+  const b = { hr: [150, 168, 174, 176], hrMax: 999, hrAvg: 999 };
+  assert.equal(a.bikeHrMaxOf(b), 176);
+  assert.equal(a.bikeHrAvgOf(b), 167);
+});
+
+test('心拍が1つも無ければ null', () => {
+  const a = app();
+  assert.equal(a.bikeHrMaxOf({ hr: [null, null, null, null] }), null);
+  assert.equal(a.bikeHrMaxOf(undefined), null);
+  assert.equal(a.bikeHrAvgOf(null), null);
+});
+
+test('getDay() は hr 配列の無い既存のバイク記録に枠を足す', () => {
+  const a = app({ hamrehab_v1: JSON.stringify({
+    phase: 3, runSession: 7, criteria: {},
+    days: { '2026-09-22': { bike: { w: [90, 90, 90, 90], level: 12, hrMax: 178 } } },
+  }) });
+  const d = a.getDay('2026-09-22');
+  assert.deepEqual(norm(d.bike.hr), [null, null, null, null]);
+  assert.equal(d.bike.hrMax, 178); // 旧データは残す
+});

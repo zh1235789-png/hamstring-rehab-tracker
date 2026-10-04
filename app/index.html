@@ -104,6 +104,7 @@ hr.backup-sep{border:none;border-top:1px solid var(--border);margin:14px 0}
 .bike-hr label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--accent);font-weight:700}
 .bike-hr input{margin-bottom:0;text-align:center;font-size:15px;font-weight:700}
 .bike-hr-note{margin-top:8px;font-size:12px;line-height:1.5}
+.bike-sub{margin-top:12px;font-size:11px;color:var(--accent);font-weight:700}
 .bike-hr-note .pill{display:inline-block;padding:1px 7px;border-radius:999px;color:#fff;font-weight:700;font-size:11px}
 .bike-date{width:46px;font-weight:600;font-size:12px}
 .bike-hrtag{width:44px;text-align:right;font-size:11px;color:var(--sub)}
@@ -165,7 +166,7 @@ nav .ico{font-size:20px}
 <script>
 // コミット時に pre-commit フックが自動で書き換える。手で編集しない。
 // 端末に更新が届いたかは、ヘッダーのこの表示で確認する。
-const BUILD = '2026-10-04.2086';
+const BUILD = '2026-10-04.4df9';
 const INJURY_DATE = '2026-07-04';
 const KEY = 'hamrehab_v1';
 
@@ -182,7 +183,7 @@ const RUN_SESSIONS = [
 const BIKE_MENU = [
   {id:'b_wu',t:'ウォームアップ 10分',d:'徐々に上げ、最後の2分で心拍を準備しておく'},
   {id:'b_main',t:'4分×4本（間に3分の軽回し）',d:'ケイデンスは90rpm前後で固定し、強度はレベルで合わせる。「4本目も1本目と同じ強度で回し切れる上限」が正解。サドルは普段よりやや低めにして股関節の屈曲を浅くする'},
-  {id:'b_lap',t:'ガーミンで各本をラップ',d:'ラップ平均心拍が自動で残る。同じレベル・同じRPMで心拍が下がれば改善'},
+  {id:'b_lap',t:'各本の終盤でRPMと心拍を読む',d:'残り10〜15秒に、バイクのRPMとウォッチの心拍を1回ずつ見るだけ。ラップを切る必要はない'},
   {id:'b_cd',t:'クールダウン 5分',d:''},
   {id:'b_check',t:'ハムの状態を確認',d:'バイクで太もも裏に張りが出るのは想定外。出たら次回は負荷を下げる'},
 ];
@@ -486,6 +487,7 @@ function getDay(ds){
   if(!S.days[ds].journal) S.days[ds].journal = {};
   if(!S.days[ds].bike || !Array.isArray(S.days[ds].bike.w)) S.days[ds].bike = {w:[null,null,null,null], rpe:null, level:null, hrMax:null, hrAvg:null};
   if(!('level' in S.days[ds].bike)) S.days[ds].bike.level = null;
+  if(!Array.isArray(S.days[ds].bike.hr)) S.days[ds].bike.hr = [null,null,null,null];
   if(!('hrMax' in S.days[ds].bike)) S.days[ds].bike.hrMax = null;
   if(!('hrAvg' in S.days[ds].bike)) S.days[ds].bike.hrAvg = null;
   if(!('z4' in S.days[ds].bike)) S.days[ds].bike.z4 = null;
@@ -532,6 +534,23 @@ function bikeHr(v){
 }
 // ゾーン4以上の滞在時間（分）。任意入力。
 // 4×4では心拍の立ち上がりに1〜2分かかるので、1本あたり実質2分前後 = 4本で8〜10分が目安。
+// 各本の終盤心拍（残り10〜15秒の値）。ラップを切らなくても、
+// RPMを読むのと同じ瞬間にウォッチを見れば取れる。
+// セッション全体の平均心拍はウォームアップ・レストの長さで薄まるので使わない。
+function bikeHrList(b){
+  if(!b || !Array.isArray(b.hr)) return [];
+  return b.hr.map(bikeHr).filter(x=>x!==null);
+}
+function bikeHrMaxOf(b){
+  const v = bikeHrList(b);
+  if(v.length) return Math.max(...v);
+  return b ? bikeHr(b.hrMax) : null;   // 旧形式
+}
+function bikeHrAvgOf(b){
+  const v = bikeHrList(b);
+  if(v.length) return Math.round(v.reduce((a,x)=>a+x,0)/v.length);
+  return b ? bikeHr(b.hrAvg) : null;   // 旧形式
+}
 const Z4_TARGET = [8,10];
 function bikeZ4(v){
   const n = Number(v);
@@ -549,8 +568,8 @@ function bikeSessions(){
   return Object.keys(S.days).sort()
     .map(ds=>({ds, avg:bikeAvg(S.days[ds].bike),
       level:(S.days[ds].bike && bikeNum(S.days[ds].bike.level))||null,
-      hrMax:(S.days[ds].bike && bikeHr(S.days[ds].bike.hrMax))||null,
-      hrAvg:(S.days[ds].bike && bikeHr(S.days[ds].bike.hrAvg))||null,
+      hrMax:bikeHrMaxOf(S.days[ds].bike),
+      hrAvg:bikeHrAvgOf(S.days[ds].bike),
       z4:(S.days[ds].bike && bikeZ4(S.days[ds].bike.z4))||null}))
     .filter(x=>x.avg!==null);
 }
@@ -575,7 +594,7 @@ function bikeLevelWarnHtml(lv, prevSess){
 // バイク用の最高心拍。ランより5〜10bpm低く出るので、ラン基準のHRmaxでは判定できない。
 // 記録した全セッションの最高値を基準にする（日を追うごとに精度が上がる）。
 function bikeHrMaxAll(){
-  const v = Object.keys(S.days).map(ds=>S.days[ds].bike && bikeHr(S.days[ds].bike.hrMax)).filter(x=>x);
+  const v = Object.keys(S.days).map(ds=>bikeHrMaxOf(S.days[ds].bike)).filter(x=>x);
   return v.length ? Math.max(...v) : null;
 }
 // 平均心拍は「同じレベル」の回とだけ比較できる。負荷が違えば心拍が違って当然なので、
@@ -605,14 +624,14 @@ function bikeZ4NoteHtml(b, ds){
   return h;
 }
 function bikeHrNoteHtml(b, ds){
-  const hrMax = bikeHr(b.hrMax), hrAvg = bikeHr(b.hrAvg), lv = bikeNum(b.level);
+  const hrMax = bikeHrMaxOf(b), hrAvg = bikeHrAvgOf(b), lv = bikeNum(b.level);
   if(hrMax===null && hrAvg===null){
-    return `<span class="sub">各本をガーミンでラップしておくと、最高心拍とラップ平均心拍がそのまま残ります。初回の値がバイク用の基準になります。</span>`;
+    return `<span class="sub">RPMを読むのと<b>同じ瞬間（残り10〜15秒）にウォッチの心拍</b>を読んで入れてください。1本目は心拍が立ち上がりきらず低く出るのが正常です。初回の値がバイク用の基準になります。</span>`;
   }
   let h = '';
   if(hrMax!==null){
     const ref = bikeHrMaxAll();
-    const others = Object.keys(S.days).filter(d=>d!==ds && S.days[d].bike && bikeHr(S.days[d].bike.hrMax)).length;
+    const others = Object.keys(S.days).filter(d=>d!==ds && bikeHrMaxOf(S.days[d].bike)).length;
     if(!others || hrMax>=ref){
       h += `<div>最高 <b>${hrMax}</b> bpm — <b>これがバイク用の基準心拍</b>になります。</div>`;
     }else{
@@ -769,12 +788,10 @@ function renderToday(){
         <input class="journal-field" type="number" inputmode="numeric" min="0" step="1" value="${lv??''}" oninput="setBikeLevel(this.value)">
         <span class="sub" style="font-weight:normal">${prevSess&&prevSess.level?`前回 L${prevSess.level}`:''}</span></div>
       <div id="bikeLvWarn">${bikeLevelWarnHtml(lv, prevSess)}</div>
-      <div class="bike-hr">
-        <label><span>最高心拍 (bpm)</span>
-          <input class="journal-field" type="number" inputmode="numeric" min="${HR_MIN}" max="${HR_MAX}" step="1" value="${bikeHr(b.hrMax)??''}" oninput="setBikeHr('hrMax',this.value)"></label>
-        <label><span>平均心拍 (bpm)</span>
-          <input class="journal-field" type="number" inputmode="numeric" min="${HR_MIN}" max="${HR_MAX}" step="1" value="${bikeHr(b.hrAvg)??''}" oninput="setBikeHr('hrAvg',this.value)"></label>
-      </div>
+      <div class="bike-sub">各本の終盤心拍 (bpm)<span class="sub"> — RPMと同じ瞬間にウォッチを見る</span></div>
+      <div class="bike-grid">${[0,1,2,3].map(i=>`
+        <label class="bike-cell"><span>本${i+1}</span>
+          <input class="journal-field" type="number" inputmode="numeric" min="${HR_MIN}" max="${HR_MAX}" step="1" value="${bikeHr(b.hr[i])??''}" oninput="setBikeHrAt(${i},this.value)"></label>`).join('')}</div>
       <div class="bike-hr-note" id="bikeHrNote">${bikeHrNoteHtml(b, ds)}</div>
       <div class="bike-lv"><span>ゾーン4以上の時間</span>
         <input class="journal-field" type="number" inputmode="decimal" min="0" max="60" step="0.5" value="${bikeZ4(b.z4)??''}" oninput="setBikeZ4(this.value)">
@@ -970,7 +987,7 @@ function setBikeRpe(val){
   save(); render();
 }
 function setBikeLevel(val){ getDay(todayStr()).bike.level=bikeNum(val); save(); refreshBikeView(); }
-function setBikeHr(key, val){ getDay(todayStr()).bike[key]=bikeHr(val); save(); refreshBikeView(); }
+function setBikeHrAt(i, val){ getDay(todayStr()).bike.hr[i]=bikeHr(val); save(); refreshBikeView(); }
 function setBikeZ4(val){ getDay(todayStr()).bike.z4=bikeZ4(val); save(); refreshBikeView(); }
 function setBikeUnit(u){ S.bikeUnit = (u==='RPM'?'RPM':'W'); save(); render(); }
 function refreshBikeView(){
