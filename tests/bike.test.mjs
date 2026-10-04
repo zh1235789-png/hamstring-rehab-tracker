@@ -189,22 +189,67 @@ test('bikeSessions() は負荷レベルも返す', () => {
     [['2026-10-01', 90, 12], ['2026-10-04', 93, 12]]);
 });
 
+const flat = (n) => ({ lv: [n, n, n, n] });
+
 test('RPM記録でレベルが変わったら比較不能の警告を出す', () => {
   // レベルが違うRPMを並べて改善と誤読するのが一番まずい
   const a = app();
   a.setBikeUnit('RPM');
   const prev = { ds: '2026-10-01', avg: 90, level: 12 };
-  assert.match(a.bikeLevelWarnHtml(14, prev), /比較できません/);
-  assert.equal(a.bikeLevelWarnHtml(12, prev), '');   // 同じレベルなら出さない
-  assert.equal(a.bikeLevelWarnHtml(null, prev), ''); // 未入力なら出さない
-  assert.equal(a.bikeLevelWarnHtml(14, null), '');   // 前回が無ければ出さない
+  assert.match(a.bikeLevelWarnHtml(flat(14), prev), /比較できません/);
+  assert.equal(a.bikeLevelWarnHtml(flat(12), prev), '');          // 同じレベルなら出さない
+  assert.equal(a.bikeLevelWarnHtml({ lv: [] }, prev), '');        // 未入力なら出さない
+  assert.equal(a.bikeLevelWarnHtml(flat(14), null), '');          // 前回が無ければ出さない
 });
 
 test('ワット記録ではレベルが変わっても警告を出さない', () => {
   // ワットは絶対値なのでレベルが変わっても比較できる
   const a = app();
   assert.equal(a.bikeUnit(), 'W');
-  assert.equal(a.bikeLevelWarnHtml(14, { ds: '2026-10-01', avg: 180, level: 12 }), '');
+  assert.equal(a.bikeLevelWarnHtml(flat(14), { ds: '2026-10-01', avg: 180, level: 12 }), '');
+});
+
+// ---- 本ごとの負荷レベル ----
+
+test('bikeLevelOf() は4本が揃っているときだけセッションのレベルを返す', () => {
+  const a = app();
+  assert.equal(a.bikeLevelOf({ lv: [12, 12, 12, 12] }), 12);
+  assert.equal(a.bikeLevelOf({ lv: [12, 12, null, null] }), 12); // 途中入力でも揃っていればよい
+  assert.equal(a.bikeLevelOf({ lv: [11, 12, 12, 12] }), null);   // バラつき = 比較不能
+});
+
+test('bikeLevelOf() は旧形式（セッションに1つ）も読む', () => {
+  const a = app();
+  assert.equal(a.bikeLevelOf({ lv: [null, null, null, null], level: 12 }), 12);
+  assert.equal(a.bikeLevelOf({ lv: [14, 14, 14, 14], level: 12 }), 14); // 本ごとを優先
+  assert.equal(a.bikeLevelOf(undefined), null);
+});
+
+test('bikeLevelLabel() はバラついたら範囲で表示する', () => {
+  const a = app();
+  assert.equal(a.bikeLevelLabel({ lv: [12, 12, 12, 12] }), 'L12');
+  assert.equal(a.bikeLevelLabel({ lv: [11, 12, 12, 13] }), 'L11→13');
+  assert.equal(a.bikeLevelLabel({ lv: [], level: 12 }), 'L12');
+  assert.equal(a.bikeLevelLabel({ lv: [] }), '');
+});
+
+test('本ごとにレベルが違う回は「比較できない」と出す', () => {
+  // 適正値を探している最中の回を、他の回と並べて読んではいけない
+  const a = app();
+  a.setBikeUnit('RPM');
+  const note = a.bikeLevelWarnHtml({ lv: [11, 12, 12, 12] }, null);
+  assert.match(note, /比較できません/);
+  assert.match(note, /L11→12/);
+});
+
+test('レベルがバラついた回は心拍・ゾーン4の前回比較に使われない', () => {
+  const days = {
+    '2026-10-01': { bike: { w: [90, 90, 90, 90], lv: [12, 12, 12, 12], hr: [160, 160, 160, 160] } },
+    '2026-10-04': { bike: { w: [90, 90, 90, 90], lv: [11, 12, 12, 13], hr: [158, 158, 158, 158] } },
+  };
+  const a = app({ hamrehab_v1: JSON.stringify({ phase: 3, runSession: 7, criteria: {}, days }) });
+  // バラついた 10-04 は level=null なので、同レベル検索の対象にならない
+  assert.equal(a.prevSameLevel('2026-10-08', 12).ds, '2026-10-01');
 });
 
 test('getDay() は level の無い既存のバイク記録に枠を足す', () => {
@@ -410,4 +455,12 @@ test('getDay() は hr 配列の無い既存のバイク記録に枠を足す', (
   const d = a.getDay('2026-09-22');
   assert.deepEqual(norm(d.bike.hr), [null, null, null, null]);
   assert.equal(d.bike.hrMax, 178); // 旧データは残す
+});
+
+test('レベルがバラついた回の平均心拍には、その理由を出す', () => {
+  // 「負荷レベルも入れると比較できます」は、入っているのに出ると意味不明になる
+  const a = app();
+  const note = a.bikeHrNoteHtml({ lv: [11, 12, 12, 13], hr: [150, 166, 172, 174] }, '2026-10-04');
+  assert.match(note, /本ごとにレベルが違うため/);
+  assert.doesNotMatch(note, /負荷レベルも入れると/);
 });
