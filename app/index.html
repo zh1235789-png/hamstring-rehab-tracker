@@ -82,40 +82,6 @@ hr.backup-sep{border:none;border-top:1px solid var(--border);margin:14px 0}
 .run-session .rs-content{font-size:15px;font-weight:700;margin-top:3px}
 .rs-btns{display:flex;gap:8px;margin-top:10px}
 .rs-btns button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:600}
-/* bike 4x4 */
-.bike-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.bike-cell{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--accent);font-weight:700}
-.bike-cell input{padding:8px 4px;text-align:center;font-size:15px;font-weight:700}
-.bike-avg{margin-top:10px;font-size:13px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.bike-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.bike-unit{display:flex;background:rgba(0,0,0,.15);border-radius:8px;padding:2px;gap:2px;margin-left:auto}
-.bike-unit button{padding:4px 10px;border:none;border-radius:6px;background:transparent;color:var(--sub);font-size:11px;font-weight:700}
-.bike-unit button.sel{background:var(--card);color:var(--accent)}
-.bike-lv{display:flex;align-items:center;gap:8px;margin-top:10px}
-.bike-lv span{font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap}
-.bike-lv input{margin-bottom:0;text-align:center;font-weight:700;max-width:90px}
-.bike-lv-warn{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:8px;background:var(--warn-bg);color:var(--warn);line-height:1.5}
-.bike-lvtag{width:38px;text-align:right;font-size:11px;color:var(--sub)}
-.rpe-row{display:flex;gap:3px;margin-top:4px}
-.rpe-btn{flex:1;padding:9px 0;border:none;border-radius:7px;background:var(--card);color:var(--text);font-size:13px;font-weight:700;opacity:.7}
-.rpe-btn.sel{opacity:1;color:#fff}
-.rpe-note{margin-top:7px;font-size:12px;line-height:1.5}
-.bike-hr{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.bike-hr label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--accent);font-weight:700}
-.bike-hr input{margin-bottom:0;text-align:center;font-size:15px;font-weight:700}
-.bike-hr-note{margin-top:8px;font-size:12px;line-height:1.5}
-.bike-sub{margin-top:12px;font-size:11px;color:var(--accent);font-weight:700}
-.bike-hr-note .pill{display:inline-block;padding:1px 7px;border-radius:999px;color:#fff;font-weight:700;font-size:11px}
-.bike-date{width:46px;font-weight:600;font-size:12px}
-.bike-hrtag{width:44px;text-align:right;font-size:11px;color:var(--sub)}
-.bike-avg b{font-size:19px}
-.bike-fade{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:8px;line-height:1.5}
-.bike-fade.warn{background:var(--warn-bg);color:var(--warn)}
-.bike-fade.ok{background:var(--card);color:var(--ok)}
-.bike-row{display:flex;align-items:center;gap:8px;padding:6px 2px;font-size:12px}
-.bike-bar{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
-.bike-bar > span{display:block;height:100%;background:var(--accent);border-radius:4px}
-.bike-w{width:56px;text-align:right;font-weight:700;font-size:13px}
 /* history */
 .hist-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);font-size:13px}
 .hist-row:last-child{border-bottom:none}
@@ -166,7 +132,7 @@ nav .ico{font-size:20px}
 <script>
 // コミット時に pre-commit フックが自動で書き換える。手で編集しない。
 // 端末に更新が届いたかは、ヘッダーのこの表示で確認する。
-const BUILD = '2026-10-04.f585';
+const BUILD = '2026-10-04.d7b0';
 const INJURY_DATE = '2026-07-04';
 const KEY = 'hamrehab_v1';
 
@@ -183,7 +149,7 @@ const RUN_SESSIONS = [
 const BIKE_MENU = [
   {id:'b_wu',t:'ウォームアップ 10分',d:'徐々に上げ、最後の2分で心拍を準備しておく'},
   {id:'b_main',t:'4分×4本（間に3分の軽回し）',d:'ケイデンスは90rpm前後で固定し、強度はレベルで合わせる。「4本目も1本目と同じ強度で回し切れる上限」が正解。サドルは普段よりやや低めにして股関節の屈曲を浅くする'},
-  {id:'b_lap',t:'各本の終盤でRPMと心拍を読む',d:'残り10〜15秒に、バイクのRPMとウォッチの心拍を1回ずつ見るだけ。ラップを切る必要はない'},
+  {id:'b_lap',t:'各本の終盤でRPMと心拍を読む',d:'残り10〜15秒に、バイクのRPMとウォッチの心拍を1回ずつ見るだけ。数値は筋トレAIコーチのバイク4×4に記録'},
   {id:'b_cd',t:'クールダウン 5分',d:''},
   {id:'b_check',t:'ハムの状態を確認',d:'バイクで太もも裏に張りが出るのは想定外。出たら次回は負荷を下げる'},
 ];
@@ -298,34 +264,6 @@ const PHASES = {
 };
 
 const PAIN_COLORS = ['#16a34a','#16a34a','#65a30d','#ca8a04','#ea580c','#ea580c','#dc2626','#dc2626','#dc2626','#dc2626','#dc2626'];
-
-// RPE 1〜10（Borg CR10準拠）。4×4の狙いは8〜9で、7以下だと刺激が足りない。
-const RPE = [
-  {v:1, label:'非常に楽', c:'#16a34a'},
-  {v:2, label:'とても楽', c:'#16a34a'},
-  {v:3, label:'楽', c:'#65a30d'},
-  {v:4, label:'やや楽', c:'#65a30d'},
-  {v:5, label:'ややきつい', c:'#ca8a04'},
-  {v:6, label:'きつい手前', c:'#ca8a04'},
-  {v:7, label:'きつい', c:'#ea580c'},
-  {v:8, label:'とてもきつい', c:'#dc2626'},
-  {v:9, label:'ほぼ限界', c:'#dc2626'},
-  {v:10,label:'限界', c:'#991b1b'},
-];
-const RPE_TARGET = [8,9];
-function rpeInfo(v){ return RPE.find(r=>r.v===v) || null; }
-// 記録した強度が狙いから外れていれば、次回どう動かすかまで出す。
-// 数字だけ残しても後から読み返せない。
-function rpeNoteHtml(v){
-  const info = rpeInfo(v);
-  if(!info) return `<span class="sub">4×4の狙いは <b>8〜9</b>（最後の1分で会話不能）。終わって「あと1本行けた」くらいが正解。</span>`;
-  let advice = '';
-  if(v<=6) advice = ' — 刺激が足りません。次回レベルを1〜2上げてください。';
-  else if(v===7) advice = ' — あと少し。次回レベルを1上げてみてください。';
-  else if(v===10) advice = ' — 追い込みすぎです。4本目まで同じ強度で回せません。次回レベルを1下げてください。';
-  else advice = ' — 狙いどおりです。';
-  return `<span style="color:${info.c};font-weight:700">${v} ${info.label}</span><span class="sub">${advice}</span>`;
-}
 
 const ROUTINE = {
   morning:[
@@ -470,7 +408,7 @@ const STRETCH_GROUPS = [
 let S = load();
 function load(){
   try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s) return s; }catch(e){}
-  return {phase:1, runSession:1, criteria:{}, days:{}, bikeUnit:'W'};
+  return {phase:1, runSession:1, criteria:{}, days:{}};
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 
@@ -485,15 +423,6 @@ function getDay(ds){
   if(!S.days[ds]) S.days[ds] = {pain:null, done:{}, type:null, phase:S.phase, routine:{}, journal:{}};
   if(!S.days[ds].routine) S.days[ds].routine = {};
   if(!S.days[ds].journal) S.days[ds].journal = {};
-  if(!S.days[ds].bike || !Array.isArray(S.days[ds].bike.w)) S.days[ds].bike = {w:[null,null,null,null], rpe:null, level:null, hrMax:null, hrAvg:null};
-  if(!Array.isArray(S.days[ds].bike.lv)) S.days[ds].bike.lv = [null,null,null,null];
-  if(!('level' in S.days[ds].bike)) S.days[ds].bike.level = null;
-  if(!Array.isArray(S.days[ds].bike.hr)) S.days[ds].bike.hr = [null,null,null,null];
-  if(!('hrMax' in S.days[ds].bike)) S.days[ds].bike.hrMax = null;
-  if(!('hrAvg' in S.days[ds].bike)) S.days[ds].bike.hrAvg = null;
-  if(!('z4' in S.days[ds].bike)) S.days[ds].bike.z4 = null;
-  if(!('z4m' in S.days[ds].bike)) S.days[ds].bike.z4m = null;
-  if(!('z4s' in S.days[ds].bike)) S.days[ds].bike.z4s = null;
   return S.days[ds];
 }
 // 取り込みは全記録を置き換えるので、壊れた入力をそのまま S に入れない。
@@ -519,206 +448,6 @@ function parseImport(text){
 }
 
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ---- バイク4×4（VO2maxトラック）----
-function bikeNum(v){
-  if(v===null || v==='' || v===undefined) return null;
-  const n = Number(v);
-  return (isFinite(n) && n>0) ? n : null;
-}
-// 機種によって出る数値が違う（ワットが出ないエルゴが普通にある）。
-// 単位はアプリ全体で1つだけ持ち、途中で混ざらないようにする。
-function bikeUnit(){ return S.bikeUnit==='RPM' ? 'RPM' : 'W'; }
-// 心拍はタイプミス（178→1780）が基準値を壊すので、生理的にありえない値は受け付けない。
-const HR_MIN = 60, HR_MAX = 230;
-function bikeHr(v){
-  const n = bikeNum(v);
-  return (n!==null && n>=HR_MIN && n<=HR_MAX) ? n : null;
-}
-// ゾーン4以上の滞在時間（分）。任意入力。
-// 4×4では心拍の立ち上がりに1〜2分かかるので、1本あたり実質2分前後 = 4本で8〜10分が目安。
-// 各本の終盤心拍（残り10〜15秒の値）。ラップを切らなくても、
-// RPMを読むのと同じ瞬間にウォッチを見れば取れる。
-// セッション全体の平均心拍はウォームアップ・レストの長さで薄まるので使わない。
-// 負荷レベルも本ごとに記録する（1本目で余裕があれば2本目で上げる、が実際の運用）。
-// ただし本ごとにレベルが違うセッションは、他のセッションと比較できない。
-// 揃っているときだけ「そのセッションのレベル」として扱う。
-function bikeLvList(b){
-  if(!b || !Array.isArray(b.lv)) return [];
-  return b.lv.map(x=>bikeInt(x,1,40)).filter(x=>x!==null);
-}
-function bikeLevelOf(b){
-  const v = bikeLvList(b);
-  if(v.length) return v.every(x=>x===v[0]) ? v[0] : null;
-  return b ? bikeNum(b.level) : null;   // 旧形式（セッションに1つ）
-}
-function bikeLevelMixed(b){
-  const v = bikeLvList(b);
-  return v.length>1 && !v.every(x=>x===v[0]);
-}
-function bikeLevelLabel(b){
-  const v = bikeLvList(b);
-  if(!v.length){ const old = b ? bikeNum(b.level) : null; return old ? 'L'+old : ''; }
-  return bikeLevelMixed(b) ? `L${Math.min(...v)}→${Math.max(...v)}` : 'L'+v[0];
-}
-function bikeHrList(b){
-  if(!b || !Array.isArray(b.hr)) return [];
-  return b.hr.map(bikeHr).filter(x=>x!==null);
-}
-function bikeHrMaxOf(b){
-  const v = bikeHrList(b);
-  if(v.length) return Math.max(...v);
-  return b ? bikeHr(b.hrMax) : null;   // 旧形式
-}
-function bikeHrAvgOf(b){
-  const v = bikeHrList(b);
-  if(v.length) return Math.round(v.reduce((a,x)=>a+x,0)/v.length);
-  return b ? bikeHr(b.hrAvg) : null;   // 旧形式
-}
-// ガーミンの表示が mm:ss なので、分と秒で受け取る（小数分に直させない）。
-const Z4_TARGET_SEC = [480, 600];   // 8:00〜10:00
-function bikeInt(v, lo, hi){
-  const n = Number(v);
-  return (v!==null && v!=='' && v!==undefined && isFinite(n) && Number.isInteger(n) && n>=lo && n<=hi) ? n : null;
-}
-function fmtMS(sec){
-  if(sec===null) return '—';
-  return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
-}
-// 符号つきの差分。0:30 のような読み方にする
-function fmtDeltaMS(sec){
-  const sign = sec<0 ? '-' : '+';
-  const a = Math.abs(sec);
-  return sign + Math.floor(a/60) + ':' + String(a%60).padStart(2,'0');
-}
-function bikeZ4Secs(b){
-  if(!b) return null;
-  const m = bikeInt(b.z4m, 0, 60), sec = bikeInt(b.z4s, 0, 59);
-  if(m===null && sec===null){
-    // 旧形式: 小数の分
-    const old = Number(b.z4);
-    return (b.z4!==null && b.z4!==undefined && b.z4!=='' && isFinite(old) && old>0) ? Math.round(old*60) : null;
-  }
-  const total = (m||0)*60 + (sec||0);
-  return total>0 ? total : null;
-}
-function bikeAvg(b){
-  if(!b || !Array.isArray(b.w)) return null;
-  const v = b.w.map(bikeNum).filter(x=>x!==null);
-  if(!v.length) return null;
-  return Math.round(v.reduce((s,x)=>s+x,0)/v.length);
-}
-// 本数が揃っていない日を「セッション」として数えない。
-// 1本だけ入力した日と4本完遂した日の平均を並べても比較にならないため。
-function bikeSessions(){
-  return Object.keys(S.days).sort()
-    .map(ds=>({ds, avg:bikeAvg(S.days[ds].bike),
-      level:bikeLevelOf(S.days[ds].bike),
-      levelLabel:bikeLevelLabel(S.days[ds].bike),
-      hrMax:bikeHrMaxOf(S.days[ds].bike),
-      hrAvg:bikeHrAvgOf(S.days[ds].bike),
-      z4:bikeZ4Secs(S.days[ds].bike)}))
-    .filter(x=>x.avg!==null);
-}
-function prevBikeAvg(exceptDs){
-  const past = bikeSessions().filter(x=>x.ds < exceptDs);
-  return past.length ? past[past.length-1].avg : null;
-}
-// 4本目が1本目から5%以上落ちていたら強度設定が高すぎる（1本目を飛ばしている）
-function bikeFade(b){
-  if(!b || !Array.isArray(b.w)) return null;
-  const first = bikeNum(b.w[0]), last = bikeNum(b.w[3]);
-  if(first===null || last===null) return null;
-  return last < first*0.95;
-}
-// レベルが変わると RPM は前回と比較できない。黙って並べると改善/悪化を誤読するので明示する。
-function bikeLevelWarnHtml(b, prevSess){
-  if(bikeUnit()!=='RPM') return '';
-  if(bikeLevelMixed(b)) return `<div class="bike-lv-warn">本ごとにレベルが違います（${bikeLevelLabel(b)}）。<b>このセッションは他の回と比較できません</b>。適正値が決まったら、次回から4本とも同じレベルで回してください。</div>`;
-  const lv = bikeLevelOf(b);
-  if(lv===null || !prevSess || !prevSess.level) return '';
-  if(lv===prevSess.level) return '';
-  return `<div class="bike-lv-warn">⚠️ 前回はレベル${prevSess.level}、今回はレベル${lv}です。<b>RPMは前回と比較できません</b>。ここから新しい基準として数え直してください。</div>`;
-}
-// バイク用の最高心拍。ランより5〜10bpm低く出るので、ラン基準のHRmaxでは判定できない。
-// 記録した全セッションの最高値を基準にする（日を追うごとに精度が上がる）。
-function bikeHrMaxAll(){
-  const v = Object.keys(S.days).map(ds=>bikeHrMaxOf(S.days[ds].bike)).filter(x=>x);
-  return v.length ? Math.max(...v) : null;
-}
-// 平均心拍は「同じレベル」の回とだけ比較できる。負荷が違えば心拍が違って当然なので、
-// 直前の回ではなく同レベルの直近回を探す。
-function prevSameLevel(ds, level, key){
-  if(!level) return null;
-  const past = bikeSessions().filter(x=>x.ds < ds && x.level===level && (key ? x[key] : x.hrAvg));
-  return past.length ? past[past.length-1] : null;
-}
-
-// ゾーン4以上の滞在時間は「多いほど良い」ではなく「同じレベルで減ったら負荷を上げる合図」。
-// 体力がつくと同じ負荷では高ゾーンに入らなくなり、気づかないうちに
-// ただのきつめの有酸素に変質するため、ここで明示する。
-function bikeZ4NoteHtml(b, ds){
-  const z4 = bikeZ4Secs(b), lv = bikeLevelOf(b);
-  const lo = Z4_TARGET_SEC[0], hi = Z4_TARGET_SEC[1];
-  if(z4===null) return `<span class="sub">任意。ガーミンのゾーン4以上の合計時間を、表示どおり分・秒で入れてください。目安は <b>${fmtMS(lo)}〜${fmtMS(hi)}</b>（心拍の立ち上がりに1〜2分かかるため、1本あたり実質2分前後）。</span>`;
-  let h = '';
-  if(z4 < lo) h += `<div><b>${fmtMS(z4)}</b> — 目安の${fmtMS(lo)}に届いていません。強度が足りないか、1本ごとの立ち上がりが遅れています。</div>`;
-  else h += `<div><b>${fmtMS(z4)}</b> — 目安（${fmtMS(lo)}〜${fmtMS(hi)}）に入っています。</div>`;
-  const prev = prevSameLevel(ds, lv, 'z4');
-  if(prev){
-    const d = z4 - prev.z4;
-    if(d < -30) h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${fmtMS(prev.z4)} → ${fmtDeltaMS(d)}。<b>同じレベルで滞在時間が減っています＝体力がついた分、刺激が落ちています。レベルを1上げてください。</b></div>`;
-    else if(d > 30) h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${fmtMS(prev.z4)} → ${fmtDeltaMS(d)}。滞在時間を保てています。</div>`;
-    else h += `<div style="margin-top:4px" class="sub">レベル${lv}の前回 ${fmtMS(prev.z4)} とほぼ同じです。</div>`;
-  }
-  return h;
-}
-function bikeHrNoteHtml(b, ds){
-  const hrMax = bikeHrMaxOf(b), hrAvg = bikeHrAvgOf(b), lv = bikeLevelOf(b);
-  if(hrMax===null && hrAvg===null){
-    return `<span class="sub">RPMを読むのと<b>同じ瞬間（残り10〜15秒）にウォッチの心拍</b>を読んで入れてください。1本目は心拍が立ち上がりきらず低く出るのが正常です。初回の値がバイク用の基準になります。</span>`;
-  }
-  let h = '';
-  if(hrMax!==null){
-    const ref = bikeHrMaxAll();
-    const others = Object.keys(S.days).filter(d=>d!==ds && bikeHrMaxOf(S.days[d].bike)).length;
-    if(!others || hrMax>=ref){
-      h += `<div>最高 <b>${hrMax}</b> bpm — <b>これがバイク用の基準心拍</b>になります。</div>`;
-    }else{
-      const pct = Math.round(hrMax/ref*100);
-      const ok = pct>=90;
-      h += `<div>最高 <b>${hrMax}</b> bpm <span class="pill" style="background:${ok?'#16a34a':'#ca8a04'}">基準の${pct}%</span> ${ok?'狙いどおりです。':'— 追い込みきれていません。次回レベルを1上げてください。'}</div>`;
-    }
-  }
-  if(hrAvg!==null){
-    const prev = prevSameLevel(ds, lv);
-    if(prev){
-      const d = hrAvg - prev.hrAvg;
-      const msg = d<0 ? '同じ負荷で心拍が下がっています。改善のサインです。'
-                : d>0 ? '同じ負荷で心拍が上がっています。疲労・睡眠・暑さの影響かもしれません。'
-                : '前回と同じです。';
-      h += `<div style="margin-top:4px">平均 <b>${hrAvg}</b> bpm（レベル${lv}の前回 ${prev.hrAvg} → ${d>0?'+':''}${d}）— <span class="sub">${msg}</span></div>`;
-    }else{
-      const why = lv ? `— レベル${lv}での比較対象がまだありません。`
-        : bikeLevelMixed(b) ? '— 本ごとにレベルが違うため、他の回とは比較できません。'
-        : '— 負荷レベルも入れると次回から比較できます。';
-      h += `<div style="margin-top:4px">平均 <b>${hrAvg}</b> bpm <span class="sub">${why}</span></div>`;
-    }
-  }
-  return h;
-}
-function bikeDeltaText(avg, prev){
-  if(avg===null || prev===null) return '';
-  const d = avg - prev;
-  return `前回 ${prev} → ${d>0?'+':''}${d}`;
-}
-function bikeFadeHtml(b){
-  const fade = bikeFade(b);
-  if(fade===null) return '';
-  const rpm = bikeUnit()==='RPM';
-  if(fade) return `<div class="bike-fade warn">⚠️ 4本目が1本目から5%以上落ちています。強度設定が高すぎるので、次回は${rpm?'レベルを1':'5〜10W'}下げてください。</div>`;
-  return `<div class="bike-fade ok">✅ 4本目まで維持できています。次回は${rpm?'レベルを1':'5W'}上げて試す余地あり。</div>`;
-}
 
 function render(){
   const ph = PHASES[S.phase];
@@ -815,51 +544,10 @@ function renderToday(){
       </div></div>`;
   }
 
-  // bike 4x4 log
+  // バイク4×4の数値は筋トレAIコーチの有酸素（バイク4×4）に記録する（2026-10-04 移管）
   if(day.type==='バイク日'){
-    const b = day.bike;
-    const avg = bikeAvg(b), prev = prevBikeAvg(ds);
-    const unit = bikeUnit();
-    const prevSess = bikeSessions().filter(x=>x.ds < ds).pop() || null;
-    h += `<div class="run-session">
-      <div class="bike-head"><div class="rs-label">VO2MAX トラック — バイク 4×4</div>
-        <div class="bike-unit">
-          <button class="${unit==='W'?'sel':''}" onclick="setBikeUnit('W')">ワット</button>
-          <button class="${unit==='RPM'?'sel':''}" onclick="setBikeUnit('RPM')">RPM</button>
-        </div></div>
-      <div class="bike-grid">`;
-    for(let i=0;i<4;i++){
-      h += `<label class="bike-cell"><span>本${i+1}</span>
-        <input class="journal-field" type="number" inputmode="numeric" min="0" step="1" value="${bikeNum(b.w[i])??''}" oninput="setBike(${i},this.value)"></label>`;
-    }
-    h += `</div>
-      ${unit==='RPM'?`<p class="sub" style="margin-top:7px"><b>各本の残り10〜15秒の瞬間RPM</b>を読んで入れてください。平均を推定しなくて構いません。<b>毎回同じタイミングで読むこと</b>だけが重要です（読む場所がズレると比較できなくなります）。</p>`:''}
-      <div class="bike-avg">平均 <b id="bikeAvg">${avg===null?'—':avg+' '+unit}</b><span class="sub" id="bikeDelta">${bikeDeltaText(avg,prev)}</span></div>
-      <div id="bikeFade">${bikeFadeHtml(b)}</div>
-      <div class="bike-sub">各本の負荷レベル<span class="sub"> — ${prevSess&&prevSess.levelLabel?`前回 ${prevSess.levelLabel}`:'適正値が決まったら4本とも同じに'}</span></div>
-      <div class="bike-grid">${[0,1,2,3].map(i=>`
-        <label class="bike-cell"><span>本${i+1}</span>
-          <input class="journal-field" type="number" inputmode="numeric" min="1" max="40" step="1" value="${bikeInt(b.lv[i],1,40)??''}" oninput="setBikeLv(${i},this.value)"></label>`).join('')}</div>
-      <div id="bikeLvWarn">${bikeLevelWarnHtml(b, prevSess)}</div>
-      <div class="bike-sub">各本の終盤心拍 (bpm)<span class="sub"> — RPMと同じ瞬間にウォッチを見る</span></div>
-      <div class="bike-grid">${[0,1,2,3].map(i=>`
-        <label class="bike-cell"><span>本${i+1}</span>
-          <input class="journal-field" type="number" inputmode="numeric" min="${HR_MIN}" max="${HR_MAX}" step="1" value="${bikeHr(b.hr[i])??''}" oninput="setBikeHrAt(${i},this.value)"></label>`).join('')}</div>
-      <div class="bike-hr-note" id="bikeHrNote">${bikeHrNoteHtml(b, ds)}</div>
-      <div class="bike-lv"><span>ゾーン4以上</span>
-        <input class="journal-field" type="number" inputmode="numeric" min="0" max="60" step="1" value="${bikeInt(b.z4m,0,60)??''}" oninput="setBikeZ4Part('z4m',this.value)">
-        <span class="sub" style="font-weight:normal">分</span>
-        <input class="journal-field" type="number" inputmode="numeric" min="0" max="59" step="1" value="${bikeInt(b.z4s,0,59)??''}" oninput="setBikeZ4Part('z4s',this.value)">
-        <span class="sub" style="font-weight:normal">秒</span></div>
-      <div class="bike-hr-note" id="bikeZ4Note">${bikeZ4NoteHtml(b, ds)}</div>
-      <span class="journal-label">主観強度 RPE <span class="sub">（狙い ${RPE_TARGET[0]}〜${RPE_TARGET[1]}）</span></span>
-      <div class="rpe-row">${RPE.map(r=>{
-        const sel = bikeNum(b.rpe)===r.v;
-        return `<button class="rpe-btn${sel?' sel':''}" style="${sel?`background:${r.c}`:''}" onclick="setBikeRpe(${r.v})">${r.v}</button>`;
-      }).join('')}</div>
-      <div class="rpe-note">${rpeNoteHtml(bikeNum(b.rpe))}</div>
-      <p class="sub" style="margin-top:8px">${unit==='RPM'?'<b>レベルを固定したままRPMを記録</b>してください。レベルが変わるとRPMは比較できなくなります。':'ワットが出る機種はワットのまま。レベルは参考として記録します。'}</p>
-    </div>`;
+    h += `<div class="run-session"><div class="rs-label">VO2MAX トラック — バイク 4×4</div>
+      <div class="sub" style="margin-top:4px">ワット/RPM・レベル・心拍・ゾーン4・RPEは<b>筋トレAIコーチ</b>の「有酸素運動を記録 → バイク4×4」に入れてください。ここではメニューのチェックだけ行います。</div></div>`;
   }
 
   // checklist
@@ -923,41 +611,6 @@ function journalHtml(j){
   return journalEntries(j).map(k=>`<div class="sub" style="font-size:13px;color:var(--text);margin-bottom:4px"><b style="color:var(--sub);font-weight:600">${JOURNAL_LABELS[k]}：</b>${esc(j[k])}</div>`).join('');
 }
 
-function renderBikeTrend(){
-  const sess = bikeSessions();
-  if(!sess.length) return '';
-  const shown = sess.slice(-12);
-  const max = Math.max(...shown.map(s=>s.avg));
-  const first = sess[0], last = sess[sess.length-1];
-  let h = `<div class="card"><h2>🚴 バイク4×4 の推移 <span class="tag">${sess.length}セッション</span></h2>
-    <p class="sub" style="margin-bottom:8px">同じ主観強度・同じ負荷レベルで数値が上がっていれば VO2max は伸びています。run-walk 主体の期間はガーミンの推定VO2maxが更新されないので、判定はこの数値で行ってください。</p>`;
-  const unit = bikeUnit();
-  shown.forEach((s,i)=>{
-    const before = i>0 ? shown[i-1] : null;
-    const changed = unit==='RPM' && s.level && before && before.level && s.level!==before.level;
-    h += `<div class="bike-row">
-      <span class="bike-date">${s.ds.slice(5).replace('-','/')}</span>
-      <span class="bike-bar"><span style="width:${max?Math.round(s.avg/max*100):0}%"></span></span>
-      <span class="bike-w">${s.avg} ${unit}</span>
-      <span class="bike-lvtag">${s.levelLabel?(changed?'⚠️':'')+s.levelLabel:''}</span>
-      <span class="bike-hrtag">${s.hrAvg?'♥'+s.hrAvg:''}</span>
-    </div>`;
-  });
-  if(sess.length>=2){
-    // RPM記録でレベルが変わっていれば、初回との比較は意味を持たない
-    const comparable = unit==='W' || !first.level || !last.level || first.level===last.level;
-    if(comparable){
-      const d = last.avg - first.avg;
-      const pct = first.avg ? Math.round(d/first.avg*1000)/10 : 0;
-      h += `<div class="sub" style="margin-top:8px">初回 ${first.avg} ${unit} → 直近 ${last.avg} ${unit}（${d>0?'+':''}${d} ${unit} / ${pct>0?'+':''}${pct}%）</div>`;
-    }else{
-      h += `<div class="sub" style="margin-top:8px">初回はレベル${first.level}、直近はレベル${last.level}のため通算の比較は出していません。同じレベルの回どうしで見てください。</div>`;
-    }
-  }
-  h += `</div>`;
-  return h;
-}
-
 function renderHistory(){
   const el = document.getElementById('tab-history');
   const dates = Object.keys(S.days).sort().reverse().slice(0,60);
@@ -973,7 +626,7 @@ function renderHistory(){
     h += `<div class="hist-row"${hasJournal?` style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('open')"`:''}>
       <span class="hist-date">${ds.slice(5).replace('-','/')} <span class="sub">(${dayNum(ds)}日目)</span></span>
       <span class="hist-pain" style="background:${painBg};color:#fff">${d.pain===null?'–':'痛'+d.pain}</span>
-      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}${bikeAvg(d.bike)!==null?` 🚴${bikeAvg(d.bike)}W`:''}${hasJournal?' 📝':''}</span>
+      <span class="hist-detail">P${d.phase} ${d.type||''} ${items.length?`${done}/${items.length}`:''}${hasJournal?' 📝':''}</span>
     </div>`;
     if(hasJournal) h += `<div class="collapse-body" style="padding:2px 4px 12px;border-bottom:1px solid var(--border)">${journalHtml(d.journal)}</div>`;
   });
@@ -994,7 +647,7 @@ function renderHistory(){
     </div>
   </div>`;
 
-  el.innerHTML = renderBikeTrend() + h;
+  el.innerHTML = h;
 }
 
 function backupMsg(id, text, ok){
@@ -1032,47 +685,6 @@ function setPain(v){ const d=getDay(todayStr()); d.pain = (d.pain===v)?null:v; s
 function setType(t){ getDay(todayStr()).type = t; save(); render(); }
 function toggle(id,on){ const d=getDay(todayStr()); d.done[id]=on; d.phase=S.phase; save(); render(); }
 function toggleRoutine(id,on){ const d=getDay(todayStr()); d.routine[id]=on; save(); render(); }
-// 入力中に render() を呼ぶとフォーカスが飛ぶので、表示だけ差分更新する（ジャーナルと同じ方針）
-function setBike(i,val){ const d=getDay(todayStr()); d.bike.w[i]=bikeNum(val); save(); refreshBikeView(); }
-// 同じ数字をもう一度押したら取り消す（痛みスコアと同じ操作感）
-function setBikeRpe(val){
-  const d = getDay(todayStr());
-  const v = bikeNum(val);
-  d.bike.rpe = (d.bike.rpe===v) ? null : v;
-  save(); render();
-}
-function setBikeLv(i, val){
-  const d = getDay(todayStr());
-  d.bike.lv[i] = bikeInt(val, 1, 40);
-  d.bike.level = null;   // 旧形式が残っていると本ごとの入力を上書きしてしまう
-  save(); refreshBikeView();
-}
-function setBikeHrAt(i, val){ getDay(todayStr()).bike.hr[i]=bikeHr(val); save(); refreshBikeView(); }
-function setBikeZ4Part(key, val){
-  const d = getDay(todayStr());
-  d.bike[key] = bikeInt(val, 0, key==='z4s' ? 59 : 60);
-  d.bike.z4 = null;   // 旧形式が残っていると分・秒の編集結果を上書きしてしまう
-  save(); refreshBikeView();
-}
-function setBikeUnit(u){ S.bikeUnit = (u==='RPM'?'RPM':'W'); save(); render(); }
-function refreshBikeView(){
-  const d = getDay(todayStr());
-  const avg = bikeAvg(d.bike);
-  const elAvg = document.getElementById('bikeAvg');
-  if(elAvg) elAvg.textContent = avg===null?'—':avg+' W';
-  const elD = document.getElementById('bikeDelta');
-  if(elD) elD.textContent = bikeDeltaText(avg, prevBikeAvg(todayStr()));
-  const elF = document.getElementById('bikeFade');
-  if(elF) elF.innerHTML = bikeFadeHtml(d.bike);
-  const elAv = document.getElementById('bikeAvg');
-  if(elAv && avg!==null) elAv.textContent = avg + ' ' + bikeUnit();
-  const elW = document.getElementById('bikeLvWarn');
-  if(elW) elW.innerHTML = bikeLevelWarnHtml(d.bike, bikeSessions().filter(x=>x.ds < todayStr()).pop() || null);
-  const elH = document.getElementById('bikeHrNote');
-  if(elH) elH.innerHTML = bikeHrNoteHtml(d.bike, todayStr());
-  const elZ = document.getElementById('bikeZ4Note');
-  if(elZ) elZ.innerHTML = bikeZ4NoteHtml(d.bike, todayStr());
-}
 function toggleCrit(i,on){ S.criteria[S.phase][i]=on; save(); render(); }
 function runDone(){ if(S.runSession<=10){S.runSession++; save(); render();} }
 function runBack(){ if(S.runSession>1){S.runSession--; save(); render();} }
