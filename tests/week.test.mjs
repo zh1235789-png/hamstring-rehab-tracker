@@ -21,16 +21,24 @@ test('スケジュールの日の種類は、そのフェーズで選べるも�
   }
 });
 
-test('月・木は散歩だけ、ハムに負荷をかける日は週1回', () => {
+test('月・木は散歩だけ、脚は火・金・土の3回、ジムは月・木以外の毎日', () => {
   const WEEK = norm(at('2026-10-21T09:00:00+09:00').$('WEEK'));
   for (const [n, days] of Object.entries(WEEK)) {
     for (const w of [1, 4]) {
       assert.equal(days[w].type, '休養日', `Phase ${n} ${w}`);
       assert.ok(!days[w].gym, `Phase ${n} ${w}`);
     }
-    assert.equal(days.filter((e) => e.legs).length, 1, `Phase ${n}`);
-    assert.deepEqual(days.map((e, i) => e.gym ? i : -1).filter((i) => i >= 0), [2, 3, 5, 6], `Phase ${n} のジムは火水金土`);
+    assert.deepEqual(days.map((e, i) => e.legs ? i : -1).filter((i) => i >= 0), [2, 5, 6], `Phase ${n} の脚は火金土`);
+    assert.deepEqual(days.map((e, i) => e.gym ? i : -1).filter((i) => i >= 0), [0, 2, 3, 5, 6], `Phase ${n} のジムは日火水金土`);
+    assert.ok(!days[3].legs, `Phase ${n} 水曜は脚なし`);
+    assert.equal(days[0].type, 'バイク日', `Phase ${n} 日曜はバイク`);
   }
+});
+
+test('Phase 4 はGarminコーチどおり火・水(ロング走)・金に走る', () => {
+  const days = norm(at('2026-10-21T09:00:00+09:00').$('WEEK'))[4];
+  assert.deepEqual(days.map((e, i) => e.type === 'ラン日' ? i : -1).filter((i) => i >= 0), [2, 3, 5]);
+  assert.match(days[3].label, /ロング走/);
 });
 
 test('Phase 3 は火・金ランで1日おきを守る', () => {
@@ -46,7 +54,7 @@ test('タブを選んでいない日は、曜日どおりのメニューにな�
 
 test('前に既定で入った種類が保存されていても、選んでいなければ曜日を優先', () => {
   const a = at('2026-10-21T09:00:00+09:00', stateWith(3, { '2026-10-21': { pain: 1, done: {}, type: 'ラン日', phase: 3 } }));
-  assert.equal(a.$('S').days['2026-10-21'].type, 'バイク日');
+  assert.equal(a.$('S').days['2026-10-21'].type, '筋トレ日');
 });
 
 test('自分で選んだタブはスケジュールより優先される', () => {
