@@ -101,6 +101,12 @@ nav .ico{font-size:20px}
 .collapse-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:14px;font-weight:700}
 .collapse-body{display:none;margin-top:10px}
 .collapse-body.open{display:block}
+.week-table{width:100%;border-collapse:collapse;font-size:13px}
+.week-table th{width:2.2em;text-align:center;color:var(--sub);font-weight:700;vertical-align:top;padding:7px 0}
+.week-table td{padding:7px 4px;border-bottom:1px solid var(--border)}
+.week-table tr:last-child td{border-bottom:none}
+.week-table tr.today th,.week-table tr.today td{color:var(--accent);font-weight:700}
+.week-table td .sub{font-size:12px;font-weight:normal}
 </style>
 </head>
 <body>
@@ -305,6 +311,34 @@ const PHASES = {
     criteria:[]
   }
 };
+
+// 週間スケジュール（2026-10-21 決定）。月・木は散歩だけ、ジムは火・水・金・土。
+// ハムに負荷をかける日は土曜1回にまとめ、次のラン（火）まで中2日空ける。
+// 添字は Date#getDay()（0=日曜）。type は各フェーズの dayTypes にある名前。
+const GYM_UPPER_NOTE = 'ハムに負荷がかかる種目は避ける：デッドリフト・ラックプル・ベントオーバーロウ・立って反動を使うカール。代わりにチェストサポートロウ・シーテッドロウ・座ってのダンベルカール。懸垂・ラットプル・ベンチ・ショルダープレスはOK';
+const WEEK = {
+  3:[
+    {type:'休養日', label:'休養'},
+    {type:'休養日', label:'散歩（筋トレ・ランなし）'},
+    {type:'ラン日', label:'朝ラン', gym:'上半身：押す（胸・肩・三頭）'},
+    {type:'バイク日', label:'バイク4×4', gym:'上半身：引く（背中・二頭）'},
+    {type:'休養日', label:'散歩（筋トレ・ランなし）'},
+    {type:'ラン日', label:'朝ラン', gym:'上半身：肩・腕・弱点'},
+    {type:'筋トレ日', label:'脚の筋トレ＋タバタ（ブロックAだけ）', gym:'脚：RDL・スクワット・ノルディックカール（後半から）', legs:true},
+  ],
+  4:[
+    {type:'バイク日', label:'バイク4×4'},
+    {type:'休養日', label:'散歩（筋トレ・ランなし）'},
+    {type:'スピード日', label:'朝ラン（ストライド）', gym:'上半身：押す（胸・肩・三頭）'},
+    {type:'ラン日', label:'朝ラン（軽いジョグ）', gym:'上半身：引く（背中・二頭）'},
+    {type:'休養日', label:'散歩（筋トレ・ランなし）'},
+    {type:'ラン日', label:'朝ラン', gym:'上半身：肩・腕・弱点'},
+    {type:'筋トレ日', label:'脚の筋トレ＋タバタ（スイング）', gym:'脚：RDL・スクワット・ノルディックカール', legs:true},
+  ],
+};
+const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
+function weekdayOf(ds){ const [y,m,d] = ds.split('-').map(Number); return new Date(y,m-1,d).getDay(); }
+function scheduledFor(phase, ds){ return WEEK[phase] ? WEEK[phase][weekdayOf(ds)] : null; }
 
 const PAIN_COLORS = ['#16a34a','#16a34a','#65a30d','#ca8a04','#ea580c','#ea580c','#dc2626','#dc2626','#dc2626','#dc2626','#dc2626'];
 
@@ -553,6 +587,9 @@ function renderToday(){
   const ph = PHASES[S.phase];
   const ds = todayStr();
   const day = getDay(ds);
+  const sched = scheduledFor(S.phase, ds);
+  // 自分でタブを選んでいない日は、週間スケジュールの曜日どおりのメニューにする
+  if(!day.typeChosen && sched && ph.dayTypes.includes(sched.type)) day.type = sched.type;
   if(!day.type || !ph.dayTypes.includes(day.type)) day.type = ph.dayTypes[0];
   const el = document.getElementById('tab-today');
   let h = '';
@@ -572,7 +609,12 @@ function renderToday(){
   h += `<div class="note-box">📌 ${ph.note}</div>`;
 
   // day type selector
-  h += `<div class="card"><h2>📋 今日のメニュー</h2><div class="seg">`;
+  h += `<div class="card"><h2>📋 今日のメニュー</h2>`;
+  if(sched){
+    h += `<div class="info-box">🗓 今日（${WEEKDAY_JA[weekdayOf(ds)]}曜）の予定：<b>${sched.label}</b>${sched.gym?`<br>🏋️ ジム：${sched.gym}`:''}</div>`;
+    if(sched.gym && !sched.legs) h += `<div class="note-box">⚠️ ${GYM_UPPER_NOTE}</div>`;
+  }
+  h += `<div class="seg">`;
   ph.dayTypes.forEach(t=>{ h += `<button class="${day.type===t?'sel':''}" onclick="setType('${t}')">${t}</button>`; });
   h += `</div>`;
 
@@ -601,6 +643,18 @@ function renderToday(){
   });
   h += `<div class="progress-bar"><div style="width:${items.length?Math.round(doneCount/items.length*100):0}%"></div></div>`;
   h += `<div class="sub" style="margin-top:6px">${doneCount}/${items.length} 完了</div></div>`;
+
+  // weekly schedule
+  if(WEEK[S.phase]){
+    const today = weekdayOf(ds);
+    h += `<div class="card"><div class="collapse-head" onclick="this.nextElementSibling.classList.toggle('open')">🗓 週間スケジュール <span>▾</span></div>
+      <div class="collapse-body"><table class="week-table">`;
+    [1,2,3,4,5,6,0].forEach(w=>{
+      const e = WEEK[S.phase][w];
+      h += `<tr class="${w===today?'today':''}"><th>${WEEKDAY_JA[w]}</th><td>${e.label}${e.gym?`<div class="sub">🏋️ ${e.gym}</div>`:''}</td></tr>`;
+    });
+    h += `</table><p class="sub" style="font-size:12px;margin-top:8px">ハムに負荷をかける日は土曜だけ。張りが残る週は土曜の量を減らす。</p></div></div>`;
+  }
 
   // phase description collapse
   h += `<div class="card"><div class="collapse-head" onclick="this.nextElementSibling.classList.toggle('open')">💡 このフェーズのゴール <span>▾</span></div>
@@ -725,13 +779,13 @@ function doImport(){
 
 // actions
 function setPain(v){ const d=getDay(todayStr()); d.pain = (d.pain===v)?null:v; save(); render(); }
-function setType(t){ getDay(todayStr()).type = t; save(); render(); }
+function setType(t){ const d=getDay(todayStr()); d.type = t; d.typeChosen = true; save(); render(); }
 function toggle(id,on){ const d=getDay(todayStr()); d.done[id]=on; d.phase=S.phase; save(); render(); }
 function toggleRoutine(id,on){ const d=getDay(todayStr()); d.routine[id]=on; save(); render(); }
 function toggleCrit(i,on){ S.criteria[S.phase][i]=on; save(); render(); }
 function runDone(){ if(S.runSession<=10){S.runSession++; save(); render();} }
 function runBack(){ if(S.runSession>1){S.runSession--; save(); render();} }
-function advance(){ S.phase = Math.min(5, S.phase+1); const d=getDay(todayStr()); d.phase=S.phase; d.type=null; save(); render(); switchTab('today'); }
+function advance(){ S.phase = Math.min(5, S.phase+1); const d=getDay(todayStr()); d.phase=S.phase; d.type=null; d.typeChosen=false; save(); render(); switchTab('today'); }
 function phaseBack(){
   if(confirm('前のフェーズに戻りますか？（進行基準のチェックはリセットされます）')){
     S.phase = Math.max(1, S.phase-1);
